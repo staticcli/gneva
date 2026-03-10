@@ -1,396 +1,390 @@
-# Kura Technical Architecture
+# Kura: Technical Architecture Document
 
-**Version:** 1.0
+**Version:** 0.1 — Initial Draft
 **Date:** 2026-03-10
+**Status:** Pre-build specification
 
 ---
 
-## 1. System Overview
+## Table of Contents
+
+1. [Product Overview](#1-product-overview)
+2. [System Architecture](#2-system-architecture)
+3. [Technology Stack & Rationale](#3-technology-stack--rationale)
+4. [Database Schema](#4-database-schema)
+5. [API Design](#5-api-design)
+6. [Processing Pipeline](#6-processing-pipeline)
+7. [Memory Engine & Knowledge Graph](#7-memory-engine--knowledge-graph)
+8. [Growth Stage Implementation](#8-growth-stage-implementation)
+9. [Deployment Architecture](#9-deployment-architecture)
+10. [Cost Analysis](#10-cost-analysis)
+11. [MVP Scope & Timeline](#11-mvp-scope--timeline)
+12. [Scalability Considerations](#12-scalability-considerations)
+
+---
+
+## 1. Product Overview
+
+Kura is an AI team member that joins meetings, accumulates organizational memory, and progressively evolves from a silent observer into an active voice participant and autonomous project manager. Unlike meeting recording tools, Kura builds a living knowledge graph of an organization's decisions, commitments, and relationships — and uses that graph to reason, advise, and eventually act.
+
+### Growth Stages
+
+| Stage | Name | Capability |
+|-------|------|------------|
+| 1 | Silent Observer | Join meetings, transcribe, build memory silently |
+| 2 | Post-Meeting Analyst | Async summaries, action items, decision logs |
+| 3 | Async Team Member | Slack/Teams integration, answer org questions |
+| 4 | Active Participant | Real-time voice in meetings, ask clarifying questions |
+| 5 | Autonomous PM | Proactive management, represent absent members, draft PRDs |
+
+---
+
+## 2. System Architecture
+
+### High-Level Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         CLIENT LAYER                                │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  React Web   │  │  Slack Bot   │  │  Teams Bot               │  │
-│  │  Dashboard   │  │  @Kura       │  │  @Kura                   │  │
-│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────────┘  │
-│         │                 │                      │                  │
-│         └────────────────┬┴──────────────────────┘                  │
-│                          │ HTTPS / WebSocket                        │
-├──────────────────────────┼──────────────────────────────────────────┤
-│                    API GATEWAY                                      │
-│  ┌───────────────────────┴─────────────────────────────────────┐   │
-│  │  FastAPI  (auth, rate limiting, CORS, request routing)      │   │
-│  └───────────────────────┬─────────────────────────────────────┘   │
-├──────────────────────────┼──────────────────────────────────────────┤
-│                    SERVICE LAYER                                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  Meeting     │  │  Memory      │  │  Query                   │  │
-│  │  Service     │  │  Engine      │  │  Engine                  │  │
-│  │              │  │              │  │                          │  │
-│  │  - Bot mgmt  │  │  - Entity    │  │  - @Kura chat            │  │
-│  │  - Audio     │  │    extraction│  │  - Semantic search       │  │
-│  │  - Transcript│  │  - Knowledge │  │  - Context assembly      │  │
-│  │  - Diarize   │  │    graph     │  │  - Answer generation     │  │
-│  │  - Summarize │  │  - Temporal  │  │                          │  │
-│  └──────┬───────┘  │    reasoning │  └──────────┬───────────────┘  │
-│         │          └──────┬───────┘              │                  │
-├─────────┼─────────────────┼─────────────────────┼──────────────────┤
-│         │           ASYNC WORKERS                │                  │
-│  ┌──────┴───────────┐  ┌──────┴──────────────────┴──────────────┐  │
-│  │  Celery Workers  │  │  Background Tasks                      │  │
-│  │  - transcribe    │  │  - entity_extraction                   │  │
-│  │  - diarize       │  │  - contradiction_detection             │  │
-│  │  - summarize     │  │  - pattern_analysis                    │  │
-│  │  - embed         │  │  - brief_generation                    │  │
-│  └──────┬───────────┘  └──────┬─────────────────────────────────┘  │
-├─────────┼─────────────────────┼─────────────────────────────────────┤
-│         │           DATA LAYER                                      │
-│  ┌──────┴──────────────────┴─────────────────────────────────────┐  │
-│  │  PostgreSQL + pgvector                                        │  │
-│  │  ┌─────────────┐ ┌───────────┐ ┌───────────┐ ┌────────────┐  │  │
-│  │  │ Relational  │ │  Vector   │ │  Meeting  │ │  Knowledge │  │  │
-│  │  │ (users,orgs)│ │  (embeds) │ │  (trans-  │ │  Graph     │  │  │
-│  │  │             │ │  384-dim  │ │  cripts)  │ │  (entities)│  │  │
-│  │  └─────────────┘ └───────────┘ └───────────┘ └────────────┘  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│  ┌──────────────┐  ┌──────────────┐                                │
-│  │  Redis       │  │  S3 / R2    │                                 │
-│  │  (cache,     │  │  (audio     │                                 │
-│  │   queues)    │  │   storage)  │                                 │
-│  └──────────────┘  └──────────────┘                                │
-├────────────────────────────────────────────────────────────────────┤
-│                    EXTERNAL SERVICES                                │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  Recall.ai   │  │  Claude API  │  │  ElevenLabs             │  │
-│  │  (meeting    │  │  (reasoning, │  │  (voice synthesis,      │  │
-│  │   bots)      │  │   extraction)│  │   Stage 4+)             │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
+│                                                                     │
+│  ┌──────────────┐   ┌──────────────┐   ┌────────────────────────┐  │
+│  │  React Web   │   │  Slack App   │   │  Teams App / Webhooks  │  │
+│  │  Dashboard   │   │  Integration │   │                        │  │
+│  └──────┬───────┘   └──────┬───────┘   └───────────┬────────────┘  │
+└─────────┼──────────────────┼───────────────────────┼───────────────┘
+          │                  │                        │
+          ▼                  ▼                        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         API GATEWAY (FastAPI)                       │
+│                                                                     │
+│  /meetings  /memory  /ask  /actions  /bot  /voice  /org  /search   │
+│                                                                     │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │                     Auth Middleware (JWT)                      │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
+          ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐
+│   MEETING BOT   │  │  TASK QUEUE     │  │   VOICE ENGINE          │
+│   SERVICE       │  │  (Celery +      │  │   (Stage 4+)            │
+│                 │  │   Redis)        │  │                         │
+│  Recall.ai SDK  │  │                 │  │  ElevenLabs API         │
+│  Bot lifecycle  │  │  - transcribe   │  │  Voice cloning          │
+│  Audio capture  │  │  - extract      │  │  Turn detection         │
+│  Real-time WS   │  │  - embed        │  │  Interrupt logic        │
+└────────┬────────┘  │  - summarize    │  └──────────────┬──────────┘
+         │           │  - notify       │                 │
+         │           └────────┬────────┘                 │
+         │                    │                          │
+         ▼                    ▼                          │
+┌─────────────────────────────────────────────────────────────────────┐
+│                      PROCESSING PIPELINE                            │
+│                                                                     │
+│  ┌─────────────┐   ┌──────────────┐   ┌──────────────────────────┐ │
+│  │  Whisper    │   │  pyannote    │   │  Entity Extractor        │ │
+│  │  (faster-   │→  │  Speaker     │→  │  (Claude API)            │ │
+│  │  whisper)   │   │  Diarization │   │  People/Projects/        │ │
+│  └─────────────┘   └──────────────┘   │  Decisions/Actions       │ │
+│                                       └──────────────┬───────────┘ │
+│                                                      │              │
+│  ┌───────────────────────────────────────────────────▼───────────┐ │
+│  │              Embedding Engine (nomic-embed-text-v1.5)         │ │
+│  │              384-dim vectors, batch processing                │ │
+│  └───────────────────────────────────────────────────┬───────────┘ │
+└──────────────────────────────────────────────────────┼─────────────┘
+                                                       │
+                               ┌───────────────────────┼──────────────────────┐
+                               │                       ▼                      │
+                               │         MEMORY ENGINE / KNOWLEDGE GRAPH      │
+                               │                                              │
+                               │  ┌────────────────────────────────────────┐ │
+                               │  │         PostgreSQL + pgvector           │ │
+                               │  │                                        │ │
+                               │  │  Relational:  Entities, Relationships  │ │
+                               │  │  Vector:      Embeddings (384-dim)     │ │
+                               │  │  Temporal:    Decision history, diffs  │ │
+                               │  └────────────────────────────────────────┘ │
+                               │                                              │
+                               │  ┌─────────────┐   ┌──────────────────────┐ │
+                               │  │    Redis    │   │  Pattern Detector    │ │
+                               │  │   Cache     │   │  Contradiction Eng.  │ │
+                               │  │   Sessions  │   │  Temporal Reasoner   │ │
+                               │  └─────────────┘   └──────────────────────┘ │
+                               └──────────────────────────────────────────────┘
+```
+
+### Service Topology
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Docker Network                    │
+│                                                     │
+│  kura-api       kura-worker      kura-beat          │
+│  (FastAPI)      (Celery)         (Celery scheduler) │
+│      │               │                 │            │
+│      └───────────────┴─────────────────┘            │
+│                       │                             │
+│              ┌────────┴──────────┐                  │
+│              ▼                  ▼                   │
+│         postgres             redis                  │
+│         (port 5432)          (port 6379)            │
+│                                                     │
+│  kura-bot-manager   kura-voice                      │
+│  (Recall.ai mgmt)   (ElevenLabs, Stage 4+)          │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Technology Stack
+## 3. Technology Stack & Rationale
 
-| Layer | Technology | Rationale |
-|-------|-----------|-----------|
-| **Backend** | FastAPI (Python 3.12) | Async-native, type hints, auto OpenAPI docs |
-| **Frontend** | React 18 + TypeScript | Component model, ecosystem, hiring pool |
-| **Database** | PostgreSQL 16 + pgvector | Single DB for relational + vector, reduces ops |
-| **Cache/Queue** | Redis 7 | Celery broker, session cache, rate limiting |
-| **Task Queue** | Celery | Distributed async processing, battle-tested |
-| **Meeting Bots** | Recall.ai API | Cross-platform (Zoom/Teams/Meet), $0.50/hr |
-| **Transcription** | faster-whisper (local) | Free, good accuracy, runs on GPU |
-| **Diarization** | pyannote 3.x | Best open-source speaker diarization |
-| **Embeddings** | nomic-embed-text-v1.5 | 384-dim, runs locally, good quality |
-| **LLM** | Claude API (Sonnet) | Best at structured extraction, reasoning |
-| **Voice (Stage 4)** | ElevenLabs Conv AI | Sub-300ms latency, turn-taking model |
-| **Object Storage** | Cloudflare R2 / S3 | Audio file storage, encrypted at rest |
-| **Deployment** | Docker Compose (dev), K8s (prod) | Standard, scalable |
+### Core Infrastructure
+
+| Component | Choice | Rationale |
+|-----------|--------|-----------|
+| Database | PostgreSQL 16 + pgvector | Single system for relational data and vector similarity search; avoids operational complexity of separate vector DB; pgvector supports HNSW indexing for fast ANN search |
+| Cache / Queue broker | Redis 7 | Celery's most battle-tested broker; doubles as session cache and pub/sub for real-time dashboard updates |
+| Async task runner | Celery 5 | Mature Python task queue, excellent retry logic, beat scheduler for cron-style tasks; native Redis integration |
+| API framework | FastAPI | Async-native, Pydantic validation, automatic OpenAPI docs, WebSocket support for real-time meeting dashboards |
+| Frontend | React + Vite | Fast builds, component ecosystem; no framework lock-in |
+
+### Meeting Infrastructure
+
+| Component | Choice | Rationale |
+|-----------|--------|-----------|
+| Meeting bot hosting | Recall.ai | Handles the hardest part: reliable bot joining across Zoom/Meet/Teams without calendar integrations; $0.50/hr is cost-effective at scale; provides audio streams via webhook |
+| Transcription (batch) | faster-whisper (large-v3) | 4x faster than openai-whisper on GPU; CTranslate2 backend; runs locally so no per-minute cost; word-level timestamps |
+| Transcription (real-time) | Deepgram Nova-2 | $0.0125/min for streaming; 300ms latency; needed for Stage 4 voice turn detection where batch latency is unacceptable |
+| Speaker diarization | pyannote/speaker-diarization-3.1 | State-of-the-art open source; integrates with faster-whisper for word-level speaker assignment; one-time Hugging Face access token |
+
+### AI / ML
+
+| Component | Choice | Rationale |
+|-----------|--------|-----------|
+| Embeddings | nomic-embed-text-v1.5 | 384-dim (vs 1536 for OpenAI); 3x cheaper storage; competitive retrieval quality; runs locally on CPU, avoiding API costs for high-volume embedding |
+| Extraction & Reasoning | Claude API (Haiku / Sonnet) | Haiku for entity extraction (cheap, fast); Sonnet for complex reasoning, contradiction detection, meeting summaries; structured JSON output via tool use |
+| Voice synthesis | ElevenLabs | Best-in-class voice quality; voice cloning for consistent Kura identity; supports streaming for low-latency meeting participation (Stage 4+) |
+
+### Rationale: Single DB vs. Separate Vector DB
+
+Using Qdrant or Pinecone alongside PostgreSQL would require keeping two systems synchronized, managing dual connection pools, and handling failure modes where they drift apart. pgvector with HNSW indexing achieves sub-10ms p99 latency for 384-dim vectors up to ~10M rows — more than sufficient for organizational memory at scale. The relational joins between vector results and entity metadata become trivial with co-located data.
 
 ---
 
-## 3. Database Schema
+## 4. Database Schema
 
 ### Core Tables
 
 ```sql
--- Multi-tenant organizations
+-- Organizations and Users
 CREATE TABLE organizations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(100) UNIQUE NOT NULL,
-    plan VARCHAR(20) DEFAULT 'free',  -- free, pro, team, enterprise
-    settings JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        TEXT NOT NULL,
+    slug        TEXT UNIQUE NOT NULL,
+    plan        TEXT NOT NULL DEFAULT 'starter',   -- starter, growth, enterprise
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Users
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255),
-    oauth_provider VARCHAR(50),
-    oauth_id VARCHAR(255),
-    role VARCHAR(20) DEFAULT 'member',  -- admin, member, viewer
-    settings JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Calendar integrations
-CREATE TABLE calendar_connections (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    provider VARCHAR(20) NOT NULL,  -- google, outlook
-    access_token TEXT NOT NULL,  -- encrypted
-    refresh_token TEXT NOT NULL,  -- encrypted
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id),
+    email           TEXT UNIQUE NOT NULL,
+    name            TEXT NOT NULL,
+    role            TEXT NOT NULL DEFAULT 'member',  -- admin, member, viewer
+    speaker_profile JSONB,                            -- voice fingerprint metadata
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Meetings
 CREATE TABLE meetings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    calendar_event_id VARCHAR(255),
-    title VARCHAR(500),
-    platform VARCHAR(20),  -- zoom, teams, meet
-    meeting_url TEXT,
-    bot_id VARCHAR(255),  -- Recall.ai bot ID
-    status VARCHAR(20) DEFAULT 'scheduled',  -- scheduled, recording, processing, ready, failed
-    started_at TIMESTAMPTZ,
-    ended_at TIMESTAMPTZ,
-    duration_seconds INTEGER,
-    audio_url TEXT,  -- S3/R2 URL (encrypted)
-    settings JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id),
+    recall_bot_id   TEXT,                            -- Recall.ai bot ID
+    platform        TEXT NOT NULL,                   -- zoom, meet, teams, webex
+    title           TEXT,
+    scheduled_at    TIMESTAMPTZ,
+    started_at      TIMESTAMPTZ,
+    ended_at        TIMESTAMPTZ,
+    duration_sec    INTEGER,
+    participant_count INTEGER,
+    status          TEXT NOT NULL DEFAULT 'scheduled',  -- scheduled, active, processing, complete, failed
+    raw_audio_path  TEXT,                            -- S3/R2 object key
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Meeting participants
-CREATE TABLE meeting_participants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
-    person_id UUID REFERENCES people(id),
-    speaker_label VARCHAR(50),  -- pyannote speaker ID
-    speaking_time_seconds INTEGER DEFAULT 0,
-    is_host BOOLEAN DEFAULT FALSE
+CREATE INDEX idx_meetings_org_id ON meetings(org_id);
+CREATE INDEX idx_meetings_started_at ON meetings(started_at DESC);
+
+-- Transcripts
+CREATE TABLE transcripts (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meeting_id  UUID NOT NULL REFERENCES meetings(id),
+    version     INTEGER NOT NULL DEFAULT 1,          -- 1=real-time, 2=batch corrected
+    full_text   TEXT NOT NULL,
+    word_count  INTEGER,
+    language    TEXT DEFAULT 'en',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(meeting_id, version)
 );
 
--- Transcript segments (speaker-attributed)
 CREATE TABLE transcript_segments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
-    speaker_label VARCHAR(50),
-    person_id UUID REFERENCES people(id),
-    start_ms INTEGER NOT NULL,
-    end_ms INTEGER NOT NULL,
-    text TEXT NOT NULL,
-    confidence FLOAT,
-    embedding vector(384)  -- pgvector, for semantic search
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transcript_id   UUID NOT NULL REFERENCES transcripts(id),
+    speaker_id      UUID REFERENCES users(id),       -- NULL if unidentified
+    speaker_label   TEXT,                            -- "Speaker 1" fallback
+    start_ms        INTEGER NOT NULL,
+    end_ms          INTEGER NOT NULL,
+    text            TEXT NOT NULL,
+    confidence      FLOAT,
+    embedding       vector(384),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Full meeting summaries
-CREATE TABLE meeting_summaries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
-    summary TEXT NOT NULL,
-    key_points JSONB,  -- [{point, speaker, timestamp}]
-    generated_by VARCHAR(50) DEFAULT 'claude-sonnet',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+CREATE INDEX idx_segments_transcript ON transcript_segments(transcript_id);
+CREATE INDEX idx_segments_embedding ON transcript_segments USING hnsw (embedding vector_cosine_ops);
 
-### Knowledge Graph Tables
-
-```sql
--- People (entity)
-CREATE TABLE people (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    role VARCHAR(255),
-    department VARCHAR(255),
-    metadata JSONB DEFAULT '{}',
-    first_seen_at TIMESTAMPTZ DEFAULT NOW(),
-    last_seen_at TIMESTAMPTZ DEFAULT NOW(),
-    embedding vector(384)
-);
-
--- Projects (entity)
-CREATE TABLE projects (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    name VARCHAR(255) NOT NULL,
+-- Knowledge Graph: Entities
+CREATE TABLE entities (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id      UUID NOT NULL REFERENCES organizations(id),
+    type        TEXT NOT NULL,                       -- person, project, decision, action_item, topic, metric
+    name        TEXT NOT NULL,
+    canonical   TEXT NOT NULL,                       -- normalized form for deduplication
     description TEXT,
-    status VARCHAR(50) DEFAULT 'active',
-    first_mentioned_at TIMESTAMPTZ,
-    last_mentioned_at TIMESTAMPTZ,
-    metadata JSONB DEFAULT '{}',
-    embedding vector(384)
+    metadata    JSONB DEFAULT '{}',
+    embedding   vector(384),
+    first_seen  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_seen   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    mention_count INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(org_id, type, canonical)
 );
 
--- Decisions (entity, temporal)
-CREATE TABLE decisions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    meeting_id UUID REFERENCES meetings(id),
-    description TEXT NOT NULL,
-    context TEXT,
-    decided_by UUID REFERENCES people(id),
-    status VARCHAR(20) DEFAULT 'active',  -- active, superseded, reversed
-    superseded_by UUID REFERENCES decisions(id),
-    decided_at TIMESTAMPTZ,
-    confidence FLOAT DEFAULT 1.0,
-    embedding vector(384)
-);
+CREATE INDEX idx_entities_org_type ON entities(org_id, type);
+CREATE INDEX idx_entities_embedding ON entities USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX idx_entities_canonical ON entities(org_id, canonical text_pattern_ops);
 
--- Action items (entity, trackable)
-CREATE TABLE action_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    meeting_id UUID REFERENCES meetings(id),
-    description TEXT NOT NULL,
-    assignee_id UUID REFERENCES people(id),
-    due_date DATE,
-    status VARCHAR(20) DEFAULT 'open',  -- open, completed, cancelled, overdue
-    completed_at TIMESTAMPTZ,
-    source_timestamp_ms INTEGER,  -- where in the meeting
-    embedding vector(384)
-);
-
--- Topics (entity)
-CREATE TABLE topics (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    mention_count INTEGER DEFAULT 0,
-    first_mentioned_at TIMESTAMPTZ,
-    last_mentioned_at TIMESTAMPTZ,
-    embedding vector(384)
-);
-
--- Relationships (junction tables for knowledge graph edges)
+-- Knowledge Graph: Relationships
 CREATE TABLE entity_relationships (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    source_type VARCHAR(20) NOT NULL,  -- person, project, decision, action_item, topic
-    source_id UUID NOT NULL,
-    target_type VARCHAR(20) NOT NULL,
-    target_id UUID NOT NULL,
-    relationship VARCHAR(50) NOT NULL,  -- owns, decided, assigned_to, related_to, mentions
-    meeting_id UUID REFERENCES meetings(id),
-    strength FLOAT DEFAULT 1.0,  -- accumulates with repeated mentions
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(source_type, source_id, target_type, target_id, relationship)
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id),
+    source_id       UUID NOT NULL REFERENCES entities(id),
+    target_id       UUID NOT NULL REFERENCES entities(id),
+    relationship    TEXT NOT NULL,                   -- owns, assigned_to, depends_on, contradicts, resolved_by, etc.
+    confidence      FLOAT NOT NULL DEFAULT 1.0,
+    evidence        TEXT,                            -- quote from transcript
+    meeting_id      UUID REFERENCES meetings(id),
+    valid_from      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    valid_until     TIMESTAMPTZ,                     -- NULL = still active
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Contradictions detected
+CREATE INDEX idx_relationships_source ON entity_relationships(source_id);
+CREATE INDEX idx_relationships_target ON entity_relationships(target_id);
+CREATE INDEX idx_relationships_org ON entity_relationships(org_id, relationship);
+
+-- Entity mentions per meeting (junction)
+CREATE TABLE entity_mentions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_id       UUID NOT NULL REFERENCES entities(id),
+    meeting_id      UUID NOT NULL REFERENCES meetings(id),
+    segment_id      UUID REFERENCES transcript_segments(id),
+    context         TEXT,                            -- surrounding sentence
+    mention_type    TEXT,                            -- introduced, updated, referenced, resolved
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_mentions_entity ON entity_mentions(entity_id);
+CREATE INDEX idx_mentions_meeting ON entity_mentions(meeting_id);
+
+-- Decisions (specialized entity tracking)
+CREATE TABLE decisions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_id       UUID NOT NULL REFERENCES entities(id),
+    org_id          UUID NOT NULL REFERENCES organizations(id),
+    meeting_id      UUID NOT NULL REFERENCES meetings(id),
+    statement       TEXT NOT NULL,
+    rationale       TEXT,
+    owner_id        UUID REFERENCES users(id),
+    status          TEXT NOT NULL DEFAULT 'active',  -- active, revised, reversed, superseded
+    confidence      FLOAT,
+    superseded_by   UUID REFERENCES decisions(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Action Items
+CREATE TABLE action_items (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_id       UUID NOT NULL REFERENCES entities(id),
+    org_id          UUID NOT NULL REFERENCES organizations(id),
+    meeting_id      UUID NOT NULL REFERENCES meetings(id),
+    description     TEXT NOT NULL,
+    assignee_id     UUID REFERENCES users(id),
+    due_date        DATE,
+    priority        TEXT DEFAULT 'medium',           -- low, medium, high, critical
+    status          TEXT NOT NULL DEFAULT 'open',    -- open, in_progress, done, cancelled
+    completed_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_action_items_assignee ON action_items(assignee_id, status);
+CREATE INDEX idx_action_items_org_status ON action_items(org_id, status);
+
+-- Meeting Summaries
+CREATE TABLE meeting_summaries (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meeting_id      UUID NOT NULL REFERENCES meetings(id) UNIQUE,
+    tldr            TEXT NOT NULL,
+    key_decisions   TEXT[] NOT NULL DEFAULT '{}',
+    action_items    JSONB NOT NULL DEFAULT '[]',
+    topics_covered  TEXT[] NOT NULL DEFAULT '{}',
+    sentiment       TEXT,                            -- positive, neutral, tense, productive
+    follow_up_needed BOOLEAN DEFAULT false,
+    embedding       vector(384),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_summaries_embedding ON meeting_summaries USING hnsw (embedding vector_cosine_ops);
+
+-- Contradiction Log
 CREATE TABLE contradictions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id),
-    decision_a_id UUID REFERENCES decisions(id),
-    decision_b_id UUID REFERENCES decisions(id),
-    description TEXT NOT NULL,
-    severity VARCHAR(20) DEFAULT 'medium',  -- low, medium, high
-    resolved BOOLEAN DEFAULT FALSE,
-    detected_at TIMESTAMPTZ DEFAULT NOW()
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id),
+    entity_id_a     UUID NOT NULL REFERENCES entities(id),
+    entity_id_b     UUID NOT NULL REFERENCES entities(id),
+    description     TEXT NOT NULL,
+    severity        TEXT NOT NULL DEFAULT 'low',     -- low, medium, high
+    status          TEXT NOT NULL DEFAULT 'open',    -- open, acknowledged, resolved
+    detected_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resolved_at     TIMESTAMPTZ
+);
+
+-- Kura's message log (for Slack/Teams and meeting voice)
+CREATE TABLE kura_messages (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id),
+    meeting_id      UUID REFERENCES meetings(id),
+    channel         TEXT NOT NULL,                   -- slack, teams, meeting_voice, email
+    channel_ref     TEXT,                            -- Slack thread_ts, Teams conversation_id
+    direction       TEXT NOT NULL,                   -- inbound, outbound
+    content         TEXT NOT NULL,
+    metadata        JSONB DEFAULT '{}',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
 
-### Indexes
+### pgvector Configuration
 
 ```sql
--- Vector similarity search
-CREATE INDEX idx_transcript_embedding ON transcript_segments
-    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX idx_decisions_embedding ON decisions
-    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 50);
-CREATE INDEX idx_action_items_embedding ON action_items
-    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 50);
+-- Enable extension
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;   -- for text search on entity names
 
--- Temporal queries
-CREATE INDEX idx_meetings_org_time ON meetings(org_id, started_at DESC);
-CREATE INDEX idx_decisions_org_time ON decisions(org_id, decided_at DESC);
-CREATE INDEX idx_action_items_status ON action_items(org_id, status, due_date);
-
--- Full-text search
-CREATE INDEX idx_transcript_text ON transcript_segments
-    USING gin(to_tsvector('english', text));
-
--- Knowledge graph traversal
-CREATE INDEX idx_relationships_source ON entity_relationships(source_type, source_id);
-CREATE INDEX idx_relationships_target ON entity_relationships(target_type, target_id);
+-- HNSW index tuning (at index creation)
+-- m=16, ef_construction=64 is a good default for 384-dim
+-- Tune ef_search at query time: SET hnsw.ef_search = 100;
 ```
-
----
-
-## 4. Processing Pipeline
-
-```
-Meeting Audio → Recall.ai Bot
-                    │
-                    ▼
-            Audio Stream (WebSocket)
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │  faster-whisper       │  (GPU, ~10x real-time)
-        │  Transcription        │
-        │  Output: text + times │
-        └───────────┬───────────┘
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │  pyannote 3.x         │  (GPU)
-        │  Speaker Diarization  │
-        │  Output: who said what│
-        └───────────┬───────────┘
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │  Speaker Matching     │  (match diarized speakers to known people)
-        │  - Voice fingerprint  │
-        │  - Name mention heur. │
-        └───────────┬───────────┘
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │  nomic-embed-text     │  (CPU, batch)
-        │  Embed segments       │
-        │  Output: 384-dim vecs │
-        └───────────┬───────────┘
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │  Claude API           │  (Sonnet)
-        │  Entity Extraction    │
-        │  - Decisions          │
-        │  - Action items       │
-        │  - Topics             │
-        │  - People mentions    │
-        │  - Relationships      │
-        │  - Contradictions     │
-        │  Output: structured   │
-        └───────────┬───────────┘
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │  Knowledge Graph      │
-        │  Update               │
-        │  - Upsert entities    │
-        │  - Create edges       │
-        │  - Update temporals   │
-        │  - Detect patterns    │
-        └───────────┬───────────┘
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │  Summary Generation   │  (Claude API)
-        │  - Meeting summary    │
-        │  - Key decisions      │
-        │  - Action items list  │
-        │  - Pre-meeting briefs │
-        └───────────────────────┘
-```
-
-### Processing Times (estimated, 1-hour meeting)
-
-| Step | Time | Cost |
-|------|------|------|
-| Transcription (faster-whisper, GPU) | ~6 min | Free (local) |
-| Diarization (pyannote, GPU) | ~4 min | Free (local) |
-| Embedding (nomic, CPU) | ~2 min | Free (local) |
-| Entity extraction (Claude Sonnet) | ~1 min | ~$0.15 |
-| Summary generation (Claude Sonnet) | ~30 sec | ~$0.05 |
-| **Total** | **~14 min** | **~$0.20** |
-
-With Recall.ai ($0.50/hr) + Deepgram ($0.75/hr for real-time alternative):
-- **Total cost per 1-hr meeting:** $0.70 - $1.45
 
 ---
 
@@ -398,331 +392,900 @@ With Recall.ai ($0.50/hr) + Deepgram ($0.75/hr for real-time alternative):
 
 ### Authentication
 
-```
-POST   /api/auth/register          # Email + password signup
-POST   /api/auth/login             # Email + password login
-POST   /api/auth/oauth/google      # Google OAuth callback
-POST   /api/auth/refresh           # Refresh JWT
-DELETE /api/auth/logout            # Invalidate session
-```
+All endpoints require a valid JWT in the `Authorization: Bearer <token>` header, except `/api/auth/*`. JWTs encode `user_id`, `org_id`, and `role`.
 
-### Meetings
+### Key Endpoints
 
 ```
-GET    /api/meetings               # List meetings (paginated, filtered)
-GET    /api/meetings/:id           # Meeting detail
-GET    /api/meetings/:id/transcript  # Full transcript with speakers
-GET    /api/meetings/:id/summary   # AI summary
-GET    /api/meetings/:id/entities  # Extracted entities
-POST   /api/meetings/:id/reprocess # Re-run processing pipeline
+POST   /api/auth/login
+POST   /api/auth/refresh
+DELETE /api/auth/logout
+
+GET    /api/meetings                         # list meetings for org
+POST   /api/meetings                         # schedule / register a meeting
+GET    /api/meetings/{id}                    # meeting detail
+GET    /api/meetings/{id}/transcript         # full transcript with speaker labels
+GET    /api/meetings/{id}/summary            # AI-generated summary
+GET    /api/meetings/{id}/action-items       # extracted action items
+GET    /api/meetings/{id}/decisions          # decisions logged this meeting
+GET    /api/meetings/{id}/entities           # entities mentioned
+
+POST   /api/bot/join                         # instruct Recall.ai bot to join a meeting URL
+POST   /api/bot/leave                        # remove bot from meeting
+GET    /api/bot/status/{recall_bot_id}       # real-time bot status
+
+GET    /api/memory/search?q=&type=           # semantic + keyword search across org memory
+GET    /api/memory/entities                  # list all entities (filterable by type)
+GET    /api/memory/entities/{id}             # entity detail with relationship graph
+GET    /api/memory/entities/{id}/history     # how this entity evolved over meetings
+GET    /api/memory/decisions                 # all active decisions
+GET    /api/memory/contradictions            # detected contradictions
+
+POST   /api/ask                              # freeform question to Kura (RAG-grounded answer)
+GET    /api/ask/history                      # past Q&A log
+
+GET    /api/actions                          # all open action items across org
+PATCH  /api/actions/{id}                     # update status
+GET    /api/actions/by-person/{user_id}      # action items for a specific person
+
+POST   /api/integrations/slack/webhook       # inbound Slack events
+POST   /api/integrations/teams/webhook       # inbound Teams events
+GET    /api/integrations/status              # which integrations are configured
+
+WS     /ws/meetings/{id}/live                # real-time transcript stream (Stage 1+)
+WS     /ws/meetings/{id}/voice               # bidirectional audio for Stage 4+
+
+GET    /api/org/members                      # team roster
+GET    /api/org/stats                        # meeting cadence, memory size, coverage
 ```
 
-### Knowledge Graph
-
-```
-GET    /api/knowledge/search       # Semantic search across all entities
-GET    /api/knowledge/people       # List people in org
-GET    /api/knowledge/people/:id   # Person detail + meeting history
-GET    /api/knowledge/projects     # List projects
-GET    /api/knowledge/projects/:id # Project detail + related meetings
-GET    /api/knowledge/decisions    # List decisions (filterable)
-GET    /api/knowledge/action-items # List action items (status filter)
-GET    /api/knowledge/topics       # List topics
-GET    /api/knowledge/graph        # Graph visualization data
-GET    /api/knowledge/contradictions # Detected contradictions
-```
-
-### @Kura Query
-
-```
-POST   /api/kura/ask               # Natural language query
-  Body: { "question": "What did we decide about pricing?" }
-  Response: {
-    "answer": "...",
-    "sources": [{ meeting_id, timestamp, excerpt }],
-    "confidence": 0.92
-  }
-
-POST   /api/kura/brief             # Pre-meeting brief
-  Body: { "meeting_id": "upcoming-meeting-uuid" }
-
-GET    /api/kura/suggestions       # Proactive insights
-```
-
-### Calendar & Integrations
-
-```
-POST   /api/integrations/google/connect    # OAuth flow
-POST   /api/integrations/outlook/connect   # OAuth flow
-DELETE /api/integrations/:provider/disconnect
-GET    /api/integrations/status            # Connection health
-
-POST   /api/integrations/slack/install     # Slack app install
-POST   /api/integrations/slack/events      # Slack event webhook
-```
-
-### Admin
-
-```
-GET    /api/admin/org               # Org settings
-PUT    /api/admin/org               # Update org settings
-GET    /api/admin/users             # User management
-PUT    /api/admin/users/:id/role    # Change user role
-GET    /api/admin/usage             # Usage stats (meetings, storage, API calls)
-GET    /api/admin/audit             # Audit log
-PUT    /api/admin/retention         # Data retention policy
-```
-
----
-
-## 6. Entity Extraction Prompt
-
-Claude Sonnet receives transcript chunks (~5000 tokens) with this system prompt:
-
-```
-You are an entity extraction engine for meeting transcripts. Extract structured entities from the provided transcript segment.
-
-Return a JSON object with:
-{
-  "decisions": [
-    {"description": "...", "decided_by": "speaker name", "confidence": 0.0-1.0}
-  ],
-  "action_items": [
-    {"description": "...", "assignee": "speaker name", "due_date": "YYYY-MM-DD or null"}
-  ],
-  "topics": [
-    {"name": "...", "description": "..."}
-  ],
-  "people_mentioned": [
-    {"name": "...", "role": "...", "context": "..."}
-  ],
-  "relationships": [
-    {"source": "entity name", "target": "entity name", "type": "owns|decided|assigned_to|related_to|mentions"}
-  ],
-  "potential_contradictions": [
-    {"statement": "...", "speaker": "...", "contradicts": "description of conflicting info"}
-  ]
-}
-
-Rules:
-- Only extract entities with clear evidence in the transcript
-- Set confidence < 0.7 for ambiguous decisions
-- Do not infer action items that weren't explicitly stated
-- Flag potential contradictions with prior context provided
-```
-
----
-
-## 7. Query Engine
-
-The @Kura query flow:
-
-1. **Parse intent** — Classify query type (decision lookup, person info, project status, action items, general)
-2. **Semantic search** — Embed query with nomic-embed, search pgvector across relevant tables
-3. **Context assembly** — Gather top-k results + surrounding transcript context + related entities from knowledge graph
-4. **Answer generation** — Claude Sonnet generates answer with source citations
-5. **Confidence scoring** — Based on source relevance scores and answer coherence
+### Request / Response Patterns
 
 ```python
-async def ask_kura(org_id: str, question: str) -> KuraAnswer:
-    # 1. Embed the question
-    query_vec = embed_model.encode(question)
+# POST /api/ask — example
+# Request
+{
+  "question": "What did we decide about the Q2 roadmap prioritization?",
+  "context_meeting_ids": ["uuid-optional"],  # optional scope
+  "max_sources": 5
+}
 
-    # 2. Search across entity types
-    decisions = await search_decisions(org_id, query_vec, limit=5)
-    segments = await search_transcript_segments(org_id, query_vec, limit=10)
-    action_items = await search_action_items(org_id, query_vec, limit=5)
+# Response
+{
+  "answer": "In the March 3rd planning meeting, the team decided to prioritize...",
+  "confidence": 0.87,
+  "sources": [
+    {
+      "meeting_id": "uuid",
+      "meeting_title": "Q2 Planning",
+      "meeting_date": "2026-03-03",
+      "segment": "We're going to put the analytics dashboard first...",
+      "speaker": "Sarah Chen",
+      "relevance_score": 0.94
+    }
+  ],
+  "related_decisions": ["uuid-of-decision-entity"],
+  "contradictions": []
+}
+```
 
-    # 3. Assemble context
-    context = assemble_context(decisions, segments, action_items)
+```python
+# POST /api/bot/join — example
+# Request
+{
+  "meeting_url": "https://zoom.us/j/...",
+  "platform": "zoom",
+  "meeting_title": "Engineering Standup",
+  "scheduled_at": "2026-03-10T14:00:00Z"
+}
 
-    # 4. Generate answer
-    answer = await claude_generate_answer(question, context)
+# Response
+{
+  "meeting_id": "uuid",
+  "recall_bot_id": "bot_xxx",
+  "status": "joining",
+  "estimated_join_time": "2026-03-10T14:00:30Z"
+}
+```
 
-    # 5. Return with sources
-    return KuraAnswer(
-        answer=answer.text,
-        sources=answer.sources,
-        confidence=answer.confidence,
-    )
+### Webhook: Recall.ai Inbound
+
+```python
+# POST /api/internal/recall-webhook (Recall.ai calls this)
+{
+  "event": "bot.status_change",            # or transcript.chunk, recording.complete
+  "bot_id": "bot_xxx",
+  "data": {
+    "status": "in_call",
+    "participant_count": 8
+  }
+}
 ```
 
 ---
 
-## 8. Deployment
+## 6. Processing Pipeline
 
-### Development (Docker Compose)
+### Audio to Knowledge Graph: Full Pipeline
+
+```
+Recall.ai Bot
+     │
+     │  (audio stream or recording webhook)
+     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE A: Audio Ingestion                      │
+│                                                │
+│  1. Recall webhook fires → Celery task queued  │
+│  2. Download audio from Recall CDN → R2/S3     │
+│  3. Validate audio integrity, extract metadata │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE B: Transcription                        │
+│                                                │
+│  faster-whisper large-v3 (batch, local GPU)    │
+│  OR Deepgram Nova-2 (real-time streaming)      │
+│                                                │
+│  Output: word-level segments with timestamps   │
+│  [{word, start_ms, end_ms, confidence}, ...]   │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE C: Speaker Diarization                  │
+│                                                │
+│  pyannote/speaker-diarization-3.1              │
+│  Input: audio file                             │
+│  Output: [{speaker: "SPEAKER_00",              │
+│            start: 0.0, end: 12.4}, ...]        │
+│                                                │
+│  Merge with transcript segments by timestamp   │
+│  → each segment gets speaker_label             │
+│                                                │
+│  Speaker ID resolution:                        │
+│  1. Check speaker_profiles in users table      │
+│  2. Cluster diarization embeddings vs known    │
+│  3. Fall back to "Speaker 1", "Speaker 2"      │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE D: Segment Embedding                    │
+│                                                │
+│  nomic-embed-text-v1.5 (local, batched)        │
+│  Embed each segment (~3-5 sentences each)      │
+│  384-dim vectors → transcript_segments table   │
+│                                                │
+│  Also embed full meeting text for summary vec  │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE E: Entity Extraction (Claude Haiku)     │
+│                                                │
+│  Process transcript in 2000-token chunks       │
+│  with 200-token overlap                        │
+│                                                │
+│  Prompt: extract structured entities           │
+│  Tool use → guaranteed JSON output             │
+│                                                │
+│  Entities extracted:                           │
+│  - People (name, role, org context)            │
+│  - Projects (name, status, owner)              │
+│  - Decisions (statement, rationale, owner)     │
+│  - Action Items (task, assignee, due date)     │
+│  - Topics (theme, sentiment)                   │
+│  - Metrics (name, value, trend)                │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE F: Entity Resolution & Deduplication    │
+│                                                │
+│  For each extracted entity:                    │
+│  1. Normalize canonical form                   │
+│  2. Vector similarity search in entities table │
+│     (cosine similarity > 0.92 = same entity)   │
+│  3. Fuzzy string match on canonical names      │
+│  4. UPSERT: new entity or merge into existing  │
+│  5. Update mention_count, last_seen            │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE G: Relationship Extraction              │
+│                                                │
+│  Claude Haiku: given entity list + transcript  │
+│  Extract relationships between entity pairs:   │
+│  - Person owns/assigned_to Project             │
+│  - Decision depends_on Decision                │
+│  - Action Item blocks Project                  │
+│  - Person mentioned Topic                      │
+│                                                │
+│  Write to entity_relationships with evidence   │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE H: Contradiction Detection              │
+│                                                │
+│  Claude Sonnet (run on new decisions only)     │
+│  Compare new decisions vs. recent active ones  │
+│  via vector search (top-20 similar decisions)  │
+│                                                │
+│  Prompt: do these conflict? rate severity      │
+│  Write contradictions to contradictions table  │
+│  Tag conflicting entity_relationships          │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE I: Summary Generation (Claude Sonnet)   │
+│                                                │
+│  Input: full transcript + extracted entities   │
+│  Output:                                       │
+│  - TL;DR (2-3 sentences)                       │
+│  - Key decisions list                          │
+│  - Action items with owners and due dates      │
+│  - Topics covered                              │
+│  - Meeting sentiment                           │
+│  - Follow-up meeting needed? (bool)            │
+│                                                │
+│  Embed summary → meeting_summaries table       │
+└────────────────────┬───────────────────────────┘
+                     │
+                     ▼
+┌────────────────────────────────────────────────┐
+│  STAGE J: Notifications                        │
+│                                                │
+│  - Slack: post summary to configured channel   │
+│  - Email: send action item assignments         │
+│  - Dashboard: WebSocket push to active clients │
+│  - Flag contradictions for review              │
+└────────────────────────────────────────────────┘
+```
+
+### Pipeline Timing (per 60-minute meeting)
+
+| Stage | Duration | Notes |
+|-------|----------|-------|
+| A: Audio download | ~30s | Depends on recording size (~150MB for 1hr) |
+| B: Transcription | ~3-5 min | faster-whisper on GPU; 12-15x realtime |
+| C: Diarization | ~2-3 min | pyannote runs on CPU |
+| D: Embedding | ~30s | Batched, ~200 segments |
+| E: Extraction | ~2-3 min | Multiple Claude Haiku calls |
+| F: Resolution | ~15s | DB queries + vector search |
+| G: Relationships | ~1 min | Claude Haiku |
+| H: Contradictions | ~30s | Claude Sonnet, scoped query |
+| I: Summary | ~20s | Claude Sonnet, single call |
+| J: Notifications | ~5s | Async HTTP calls |
+| **Total** | **~12-16 min** | Post-meeting latency |
+
+---
+
+## 7. Memory Engine & Knowledge Graph
+
+### Design Principles
+
+**Temporal Integrity.** Entities do not get overwritten — they accumulate history. When a decision is revised, the old decision is marked `status='revised'` and `superseded_by` points to the new one. This preserves the full audit trail.
+
+**Confidence-Weighted Relationships.** Every relationship carries a confidence score (0.0-1.0) derived from: how explicitly stated it was, whether multiple speakers confirmed it, and recency decay for old inferences.
+
+**Vector + Relational Hybrid Search.** The `/api/ask` endpoint uses a two-phase retrieval:
+1. Dense retrieval: `SELECT ... ORDER BY embedding <=> query_embedding LIMIT 50`
+2. Reranking: BM25 keyword score blended with vector similarity
+3. Graph expansion: pull entity relationships for top-5 results to get adjacent context
+
+### Contradiction Detection Algorithm
+
+```python
+async def detect_contradictions(new_decision: Decision, org_id: UUID):
+    # 1. Embed new decision statement
+    query_vec = embed(new_decision.statement)
+
+    # 2. Find semantically similar active decisions
+    candidates = await db.fetch("""
+        SELECT d.*, e.embedding
+        FROM decisions d
+        JOIN entities e ON e.id = d.entity_id
+        WHERE d.org_id = $1
+          AND d.status = 'active'
+          AND d.id != $2
+        ORDER BY e.embedding <=> $3
+        LIMIT 20
+    """, org_id, new_decision.id, query_vec)
+
+    if not candidates:
+        return
+
+    # 3. Ask Claude to evaluate contradictions
+    prompt = build_contradiction_prompt(new_decision, candidates)
+    result = await claude.haiku(prompt, tools=[ContradictionTool])
+
+    # 4. Log confirmed contradictions
+    for contradiction in result.contradictions:
+        if contradiction.confidence > 0.7:
+            await log_contradiction(contradiction)
+```
+
+### Pattern Detection (runs nightly via Celery Beat)
+
+- **Recurring topics**: entities mentioned in 3+ consecutive meetings → tag as `recurring`
+- **Stale action items**: open items > 7 days past due → escalation candidates
+- **Decision velocity**: rate of new decisions vs. reversals (org health signal)
+- **Meeting load**: who attends the most meetings (fatigue detection)
+- **Knowledge gaps**: topics discussed but no decision or owner attached
+
+### Entity Embedding Strategy
+
+Entities are embedded from a composite string to maximize semantic density:
+
+```python
+def entity_to_embed_string(entity: Entity) -> str:
+    parts = [f"{entity.type}: {entity.name}"]
+    if entity.description:
+        parts.append(entity.description)
+    if entity.metadata.get("aliases"):
+        parts.append("also known as: " + ", ".join(entity.metadata["aliases"]))
+    return " | ".join(parts)
+```
+
+---
+
+## 8. Growth Stage Implementation
+
+### Stage 1: Silent Observer (MVP)
+
+Core loop: join → transcribe → extract → embed → store.
+
+- Recall.ai bot joins via URL, no calendar integration needed
+- faster-whisper runs on same server as API (GPU preferred, CPU fallback)
+- All outputs stored, no external notifications yet
+- Dashboard shows live transcript via WebSocket
+
+Implementation: `bot_manager.py`, `pipeline/transcriber.py`, `pipeline/extractor.py`, `pipeline/memory_writer.py`
+
+### Stage 2: Post-Meeting Analyst
+
+Trigger: pipeline completion webhook.
+
+- Generate and store summary (Claude Sonnet)
+- Format action items, send to assignees via email
+- Optional Slack post to `#meeting-notes` channel
+- Dashboard summary view
+
+New components: `notifier/slack.py`, `notifier/email.py`, `summarizer.py`
+
+### Stage 3: Async Team Member
+
+Kura joins Slack/Teams as a bot user and listens for:
+- Direct mentions: `@kura what did we decide about X?`
+- Channel keywords: `kura help`, `kura find`
+- Slash command: `/kura ask ...`
+
+Answer pipeline: question → embed → hybrid retrieval → Claude Sonnet with RAG context → response.
+
+New components: `integrations/slack_bot.py`, `integrations/teams_bot.py`, `qa/retriever.py`, `qa/answerer.py`
+
+### Stage 4: Active Participant
+
+Real-time audio path with Deepgram for live transcription.
+
+Turn detection: Kura monitors the live transcript for:
+- Direct address: "Kura, what do we know about..."
+- Natural break (2s silence after a question)
+- Pre-configured trigger phrases
+
+Voice synthesis: ElevenLabs streaming TTS → Recall.ai injects audio into meeting.
+
+Constraint management:
+- Max 1 Kura interjection per 5 minutes unless directly addressed
+- Never interrupt — wait for complete pause
+- Configurable verbosity level per org (quiet / balanced / proactive)
+
+New components: `voice/turn_detector.py`, `voice/synthesizer.py`, `voice/meeting_speaker.py`
+
+### Stage 5: Autonomous PM
+
+Proactive behaviors (all configurable, all require org admin opt-in):
+
+- Pre-meeting brief: "Here's what's been decided about this project, open action items, and suggested agenda items."
+- Represent absent members: "Alex mentioned in last week's meeting that she prefers option B because..."
+- Draft follow-up PRDs: "Based on the discussion, I've drafted a requirements doc. Review link: ..."
+- Escalate stale items: "The authentication decision from Feb 20th hasn't been actioned. Should I schedule a follow-up?"
+
+New components: `pm/briefer.py`, `pm/drafter.py`, `pm/escalator.py`, `pm/representative.py`
+
+---
+
+## 9. Deployment Architecture
+
+### Development: Docker Compose
 
 ```yaml
-version: '3.8'
+# docker-compose.yml
+version: "3.9"
+
 services:
   api:
     build: .
-    ports: ["8000:8000"]
+    ports:
+      - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://kura:kura@db:5432/kura
+      - DATABASE_URL=postgresql://kura:kura@postgres:5432/kura
       - REDIS_URL=redis://redis:6379/0
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - RECALL_API_KEY=${RECALL_API_KEY}
-    depends_on: [db, redis]
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./:/app
+    command: uvicorn kura.main:app --reload --host 0.0.0.0 --port 8000
 
   worker:
     build: .
-    command: celery -A kura.worker worker -l info -c 2
     environment:
-      - DATABASE_URL=postgresql://kura:kura@db:5432/kura
+      - DATABASE_URL=postgresql://kura:kura@postgres:5432/kura
       - REDIS_URL=redis://redis:6379/0
-    depends_on: [db, redis]
+    depends_on:
+      - postgres
+      - redis
+    command: celery -A kura.tasks worker --loglevel=info --concurrency=4
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]             # for faster-whisper
 
-  db:
-    image: pgvector/pgvector:pg16
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+  beat:
+    build: .
     environment:
-      - POSTGRES_USER=kura
-      - POSTGRES_PASSWORD=kura
-      - POSTGRES_DB=kura
+      - DATABASE_URL=postgresql://kura:kura@postgres:5432/kura
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    command: celery -A kura.tasks beat --loglevel=info
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: kura
+      POSTGRES_PASSWORD: kura
+      POSTGRES_DB: kura
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:7-alpine
-    volumes: ["redisdata:/data"]
+    ports:
+      - "6379:6379"
 
   frontend:
     build: ./frontend
-    ports: ["3000:3000"]
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
 
 volumes:
   pgdata:
-  redisdata:
 ```
 
-### Production (Kubernetes)
+### Production: Kubernetes
 
-- **API:** 2-4 replicas behind load balancer, autoscale on CPU
-- **Workers:** 2-8 replicas, autoscale on queue depth
-- **GPU Workers:** 1-2 replicas with GPU (transcription + diarization + embedding)
-- **PostgreSQL:** Managed (AWS RDS, Supabase, or Neon) with pgvector extension
-- **Redis:** Managed (ElastiCache or Upstash)
-- **Storage:** S3/R2 for audio files
-- **CDN:** Cloudflare for static assets
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Cluster (EKS / GKE)               │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Ingress (nginx / AWS ALB)                              │   │
+│  │  TLS termination, rate limiting, WAF                    │   │
+│  └─────────────────────┬───────────────────────────────────┘   │
+│                        │                                        │
+│        ┌───────────────┼───────────────┐                       │
+│        ▼               ▼               ▼                       │
+│  ┌──────────┐   ┌──────────┐   ┌──────────────┐               │
+│  │ api      │   │ frontend │   │ bot-manager  │               │
+│  │ Deployment│   │ Deployment│   │ Deployment   │               │
+│  │ 3 replicas│   │ 2 replicas│   │ 2 replicas   │               │
+│  └──────────┘   └──────────┘   └──────────────┘               │
+│                                                                 │
+│  ┌──────────────┐   ┌──────────────┐   ┌────────────────────┐  │
+│  │ worker       │   │ beat         │   │ voice-worker       │  │
+│  │ Deployment   │   │ Deployment   │   │ (Stage 4+)         │  │
+│  │ 4 replicas   │   │ 1 replica    │   │ GPU node pool      │  │
+│  │ (CPU nodes)  │   │              │   │ 2 replicas         │  │
+│  └──────────────┘   └──────────────┘   └────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Managed Services (outside cluster)                      │  │
+│  │                                                          │  │
+│  │  RDS PostgreSQL + pgvector   ElastiCache Redis           │  │
+│  │  S3 / Cloudflare R2          CloudWatch Logs             │  │
+│  │  (audio storage)             Prometheus + Grafana        │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
----
+### Key Kubernetes Configs
 
-## 9. Cost Analysis Per User
+```yaml
+# HorizontalPodAutoscaler for API
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: kura-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kura-api
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+    - type: External
+      external:
+        metric:
+          name: redis_queue_length
+        target:
+          type: AverageValue
+          averageValue: "50"
+```
 
-### Pro User ($29/mo) — ~10 meetings/month, avg 45 min each
+### CI/CD Pipeline
 
-| Component | Cost/Meeting | Monthly |
-|-----------|-------------|---------|
-| Recall.ai bot | $0.38 | $3.75 |
-| Transcription (local GPU) | $0.00 | $0.00 |
-| Diarization (local GPU) | $0.00 | $0.00 |
-| Embedding (local CPU) | $0.00 | $0.00 |
-| Claude API (extraction + summary) | $0.20 | $2.00 |
-| Claude API (@Kura queries, ~20/mo) | — | $1.00 |
-| GPU compute (shared, amortized) | — | $2.00 |
-| Database + storage | — | $0.50 |
-| **Total** | | **$9.25** |
-| **Gross margin** | | **68%** |
-
-### Team User ($49/user/mo) — Higher volume, shared org context
-
-| Component | Monthly per user |
-|-----------|-----------------|
-| Infrastructure (amortized) | $1.85 |
-| Claude API | $4.00 |
-| Recall.ai | $5.00 |
-| Storage + DB | $1.00 |
-| **Total** | **$11.85** |
-| **Gross margin** | **76%** |
-
-### At Scale (1000+ users)
-
-- Bulk Recall.ai pricing: ~$0.35/hr
-- GPU amortization drops significantly
-- Per-user cost drops to ~$6-8/month
-- **Gross margin: 78-92%**
-
----
-
-## 10. MVP Scope (8-10 Weeks)
-
-### Week 1-2: Foundation
-- [ ] Project scaffolding (FastAPI + React + Docker Compose)
-- [ ] PostgreSQL + pgvector schema + migrations (Alembic)
-- [ ] User auth (email/password + Google OAuth)
-- [ ] Basic React dashboard skeleton
-
-### Week 3-4: Meeting Pipeline
-- [ ] Google Calendar integration (OAuth + webhook for new events)
-- [ ] Recall.ai bot integration (create bot, receive webhook on completion)
-- [ ] Audio download + faster-whisper transcription
-- [ ] pyannote speaker diarization
-- [ ] Transcript storage with speaker attribution
-
-### Week 5-6: Intelligence
-- [ ] nomic-embed-text embedding pipeline
-- [ ] Claude entity extraction (decisions, action items, topics, people)
-- [ ] Knowledge graph storage (entities + relationships)
-- [ ] Meeting summary generation
-- [ ] Semantic search across transcripts + entities
-
-### Week 7-8: User Experience
-- [ ] Meeting list + detail view (transcript, summary, entities)
-- [ ] @Kura query interface (ask questions, get answers with sources)
-- [ ] Knowledge explorer (list view of people, projects, decisions)
-- [ ] Action items tracker
-- [ ] Basic pre-meeting brief
-
-### Week 9-10: Polish + Launch
-- [ ] Error handling + retry logic
-- [ ] Usage tracking + billing hooks
-- [ ] Onboarding flow
-- [ ] Landing page
-- [ ] Beta invite system
-- [ ] Deploy to production (Fly.io or Railway)
-
-### Out of Scope for MVP
-- Slack/Teams integration (Stage 3)
-- Voice participation (Stage 4)
-- On-premise deployment
-- Team/org features (shared memory)
-- Advanced analytics
-- Outlook calendar
+```
+GitHub Push (main)
+       │
+       ▼
+GitHub Actions
+  ├── pytest (unit + integration)
+  ├── ruff + mypy lint
+  ├── docker build + push to ECR
+  └── kubectl rollout (with rollback on failure)
+```
 
 ---
 
-## 11. Scalability Considerations
+## 10. Cost Analysis
 
-### Database
-- **Partitioning:** Partition transcript_segments by org_id + month for large tenants
-- **Read replicas:** Offload search queries to read replicas
-- **pgvector scaling:** Switch from IVFFlat to HNSW index at >1M vectors. Consider dedicated vector DB (Qdrant, Pinecone) if pgvector becomes bottleneck
+### Per-User Per-Month Cost Model
 
-### Processing Pipeline
-- **Queue-based:** All processing is async via Celery. Scale workers independently
-- **GPU sharing:** Multiple tenants share GPU workers. Batch transcription jobs during off-peak
-- **Streaming transcription:** For real-time use (Stage 4), switch to Deepgram streaming API
+Assumptions: 1 user attends 8 meetings/month, avg 45 minutes each = 6 hours of meeting audio/month.
 
-### Multi-tenancy
-- **Data isolation:** All queries scoped by org_id. Row-level security in PostgreSQL
-- **Rate limiting:** Per-org API rate limits. Per-user query limits
-- **Resource quotas:** Meeting minutes/month per plan tier
+#### Stage 1-2 (Silent Observer + Analyst)
 
-### Caching
-- **Redis:** Cache entity lookups, recent queries, meeting summaries
-- **Embedding cache:** Cache frequently queried embeddings
-- **CDN:** Static assets + pre-generated briefs
+| Component | Usage | Unit Cost | Monthly Cost |
+|-----------|-------|-----------|--------------|
+| Recall.ai bot | 6 hrs/user | $0.50/hr | $3.00 |
+| faster-whisper (local GPU) | 6 hrs audio | ~$0.02/hr GPU time | $0.12 |
+| Claude Haiku (extraction) | ~50K tokens | $0.25/M input, $1.25/M output | $0.03 |
+| Claude Sonnet (summaries) | ~15K tokens | $3/M input, $15/M output | $0.06 |
+| nomic-embed-text (local) | ~200 segments | effectively $0 | $0.00 |
+| PostgreSQL storage | ~5MB/user/mo | $0.023/GB | $0.00 |
+| Redis | shared | amortized | $0.02 |
+| S3/R2 audio | ~900MB/user | $0.015/GB | $0.01 |
+| **Total (per user)** | | | **~$3.24** |
+
+At scale, Recall.ai dominates. With volume discounts on Recall.ai (~$0.30/hr at enterprise) and Claude API credits, this drops to approximately **$1.85/user/month**.
+
+#### Stage 3 (Async Team Member) — additive
+
+| Component | Usage | Unit Cost | Monthly Cost |
+|-----------|-------|-----------|--------------|
+| Claude Haiku (Q&A answers) | ~30 queries/user | $0.25/M tokens | $0.02 |
+| Slack API | free tier | $0 | $0.00 |
+| **Stage 3 addition** | | | **~$0.02** |
+
+#### Stage 4 (Active Participant) — additive
+
+| Component | Usage | Unit Cost | Monthly Cost |
+|-----------|-------|-----------|--------------|
+| Deepgram (real-time) | 6 hrs | $0.0125/min = $0.75/hr | $4.50 |
+| ElevenLabs | ~10 utterances/meeting | $0.18/1K chars, ~100 chars each | $1.44 |
+| **Stage 4 addition** | | | **~$5.94** |
+
+Stage 4 is significantly more expensive due to real-time transcription. Price real-time participation as a premium tier.
+
+### Pricing Strategy
+
+| Tier | Included | Price |
+|------|----------|-------|
+| Observer | Stage 1-2, up to 10 users | $29/mo |
+| Team | Stage 1-3, unlimited users | $8/user/mo |
+| Voice | Stage 1-4, unlimited users | $18/user/mo |
+| PM | Stage 1-5, enterprise | custom |
+
+**Gross margin at scale (Team tier):** $8 - $1.85 = $6.15/user/mo = ~77% margin.
 
 ---
 
-## 12. Security (Summary)
+## 11. MVP Scope & Timeline
 
-See [Security Architecture](security-architecture.md) for full details.
+### MVP Definition: Stage 1 (Silent Observer)
 
-- **Encryption:** AES-256-GCM at rest, TLS 1.3 in transit, per-tenant DEKs
-- **Auth:** JWT + refresh tokens, Google OAuth, SSO/SAML (Enterprise)
-- **RBAC:** Admin, Member, Viewer roles per org
-- **Consent:** Recording consent engine with per-meeting opt-in/out
-- **Audit:** Full audit log of all data access
-- **Compliance:** SOC 2 Type I (Month 6), GDPR-ready, HIPAA-eligible (Enterprise)
-- **On-prem:** Air-gapped deployment option with local Whisper + local LLM
+The MVP proves the core loop works reliably: bot joins, transcribes accurately, extracts entities, builds memory, surfaces it in a dashboard.
+
+MVP is NOT: voice, Slack integration, Q&A, autonomous PM.
+
+### 8-Week Timeline
+
+```
+Week 1-2: Foundation
+  ├── PostgreSQL schema + pgvector setup
+  ├── FastAPI skeleton + JWT auth
+  ├── Recall.ai bot integration (join/leave/webhook)
+  └── Basic React dashboard shell
+
+Week 3-4: Transcription Pipeline
+  ├── faster-whisper integration + Celery task
+  ├── pyannote speaker diarization
+  ├── Segment storage + transcript viewer in dashboard
+  └── Webhook → task queue flow
+
+Week 5-6: Memory Engine
+  ├── nomic-embed-text embedding pipeline
+  ├── Entity extraction (Claude Haiku) + entity tables
+  ├── Entity resolution + deduplication
+  └── Relationship extraction
+
+Week 7: Knowledge Graph UI + Search
+  ├── /api/memory/search endpoint (hybrid retrieval)
+  ├── Entity detail pages in dashboard
+  ├── Meeting summary generation (Claude Sonnet)
+  └── Contradiction detection (basic version)
+
+Week 8: Polish + Launch Prep
+  ├── Error handling + retry logic throughout pipeline
+  ├── End-to-end test with real meetings
+  ├── Kubernetes deployment + monitoring
+  ├── Onboarding flow (org creation, bot invite instructions)
+  └── Billing integration (Stripe)
+```
+
+### MVP Success Metrics
+
+- Bot successfully joins and captures audio for ≥95% of meeting join attempts
+- Transcription WER ≤ 15% on clean audio
+- Entity extraction precision ≥ 80% (manual sample evaluation)
+- Pipeline completes within 20 minutes of meeting end
+- Dashboard loads meeting summary within 500ms (cached)
+
+### Risks and Mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Recall.ai reliability issues | Low | High | Fallback: Google Meet native recording API |
+| faster-whisper accuracy on noisy audio | Medium | Medium | Deepgram as fallback; audio preprocessing (noise reduction) |
+| Entity extraction hallucination | Medium | Medium | Confidence thresholds; human review queue for low-confidence extractions |
+| pgvector performance at scale | Low | High | HNSW index tuning; partition by org_id at 1M+ entities |
+| pyannote diarization accuracy on large calls (15+ speakers) | High | Medium | Cap at 10 speaker labels; cluster remainder as "Other" |
+
+---
+
+## 12. Scalability Considerations
+
+### Database Scaling
+
+**Partitioning strategy** (activate at ~1M meetings):
+
+```sql
+-- Partition transcript_segments by created_at (monthly)
+CREATE TABLE transcript_segments (
+    ...
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE transcript_segments_2026_03
+    PARTITION OF transcript_segments
+    FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+```
+
+**Entity table** grows proportionally to org count, not meeting count. Index on `(org_id, type, canonical)` keeps lookups O(log n) per org.
+
+**pgvector at scale**: HNSW index degrades gracefully to ~20ms at 10M vectors. Beyond that, consider partitioning vectors by entity type and using approximate nearest-neighbor with a pre-filter.
+
+### Celery Worker Scaling
+
+Different task types have very different resource profiles:
+
+```python
+# celery app configuration
+app.conf.task_routes = {
+    "kura.tasks.transcribe": {"queue": "gpu"},        # GPU nodes
+    "kura.tasks.diarize": {"queue": "cpu_heavy"},     # high CPU
+    "kura.tasks.extract_entities": {"queue": "io"},   # network-bound (Claude API)
+    "kura.tasks.embed": {"queue": "cpu_heavy"},
+    "kura.tasks.summarize": {"queue": "io"},
+    "kura.tasks.notify": {"queue": "default"},
+}
+```
+
+Maintain separate node pools for GPU (transcription/embedding) and CPU/IO (extraction/notification). This allows each to scale independently.
+
+### Multi-Tenancy Isolation
+
+At the application layer, every query is scoped by `org_id`. At scale, consider:
+
+- **Row-level security** in PostgreSQL for defense-in-depth
+- **Separate Redis key namespaces** per org (prefix `org:{id}:*`)
+- **Rate limiting** per org on Celery task submission to prevent a single large org from starving others
+
+### Audio Storage
+
+Audio files are write-once, read-rarely (only during reprocessing). Use Cloudflare R2 (zero egress fees) with lifecycle policies to move files older than 90 days to Glacier-class storage, and delete raw audio after 1 year (keep transcripts).
+
+### Embedding Model Serving
+
+At >10,000 meetings/month, running nomic-embed-text locally on a shared worker becomes a bottleneck. Options:
+
+1. **Dedicated embedding worker pods** with CPU optimization (ONNX Runtime)
+2. **Batch accumulation**: buffer segments for 30s before embedding (reduces model load calls 10x)
+3. **Voyager (Meta) or Chroma's hosted embedding** as a managed alternative if self-hosting becomes operationally complex
+
+### Realtime Path (Stage 4) Isolation
+
+The real-time voice path (Deepgram + ElevenLabs + turn detection) must never be blocked by batch pipeline jobs. Keep these on a completely separate Celery queue with dedicated workers and a separate Redis instance to avoid head-of-line blocking.
+
+```
+Batch pipeline  ──→  Redis instance A  ──→  Worker pool A (CPU/GPU)
+Realtime voice  ──→  Redis instance B  ──→  Worker pool B (low-latency, reserved)
+```
+
+### Observability Stack
+
+```
+Structured Logging (JSON) → CloudWatch / Loki
+Metrics (Prometheus) → Grafana dashboards
+  - pipeline stage latency (p50, p95, p99)
+  - Celery queue depth per queue
+  - Claude API token consumption by org
+  - pgvector query latency by index
+Tracing (OpenTelemetry) → Jaeger / Tempo
+  - full trace from Recall webhook → notification sent
+Alerting:
+  - pipeline stuck > 30min → PagerDuty
+  - Recall bot join failure rate > 5% → PagerDuty
+  - Claude API error rate > 1% → Slack alert
+```
+
+---
+
+## Appendix A: Directory Structure
+
+```
+kura/
+├── kura/
+│   ├── main.py                    # FastAPI app factory
+│   ├── config.py                  # Settings (pydantic-settings)
+│   ├── db.py                      # AsyncPG connection pool
+│   ├── models/                    # SQLAlchemy ORM models
+│   │   ├── meeting.py
+│   │   ├── entity.py
+│   │   ├── transcript.py
+│   │   └── user.py
+│   ├── api/                       # FastAPI routers
+│   │   ├── meetings.py
+│   │   ├── memory.py
+│   │   ├── ask.py
+│   │   ├── actions.py
+│   │   ├── bot.py
+│   │   └── integrations.py
+│   ├── pipeline/                  # Core processing pipeline
+│   │   ├── transcriber.py         # faster-whisper wrapper
+│   │   ├── diarizer.py            # pyannote wrapper
+│   │   ├── embedder.py            # nomic-embed-text
+│   │   ├── extractor.py           # Claude Haiku entity extraction
+│   │   ├── resolver.py            # entity deduplication
+│   │   ├── relationships.py       # relationship extraction
+│   │   ├── contradictions.py      # contradiction detection
+│   │   └── summarizer.py         # Claude Sonnet summaries
+│   ├── memory/                    # Knowledge graph queries
+│   │   ├── retriever.py           # hybrid search
+│   │   ├── graph.py               # relationship traversal
+│   │   └── patterns.py            # pattern detection
+│   ├── bot/                       # Recall.ai management
+│   │   ├── manager.py
+│   │   └── webhook_handler.py
+│   ├── voice/                     # Stage 4+
+│   │   ├── turn_detector.py
+│   │   └── synthesizer.py
+│   ├── integrations/              # Stage 3+
+│   │   ├── slack.py
+│   │   └── teams.py
+│   ├── tasks.py                   # Celery task definitions
+│   └── notifier.py
+├── frontend/                      # React + Vite
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── Meeting.tsx
+│   │   │   ├── Memory.tsx
+│   │   │   └── Ask.tsx
+│   │   └── components/
+├── migrations/                    # Alembic
+├── tests/
+├── docker-compose.yml
+├── docker-compose.prod.yml
+└── k8s/
+    ├── api-deployment.yaml
+    ├── worker-deployment.yaml
+    ├── hpa.yaml
+    └── ingress.yaml
+```
+
+---
+
+## Appendix B: Claude Extraction Prompt Structure
+
+```python
+ENTITY_EXTRACTION_SYSTEM = """
+You are an expert at extracting structured knowledge from meeting transcripts.
+Extract all entities with precision. Do not hallucinate entities not explicitly
+mentioned. When uncertain, lower the confidence score rather than omitting.
+
+Always use the extract_entities tool to return structured output.
+"""
+
+ENTITY_EXTRACTION_TOOL = {
+    "name": "extract_entities",
+    "description": "Extract all entities from the meeting transcript chunk",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "people": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "role": {"type": "string"},
+                        "organization": {"type": "string"},
+                        "confidence": {"type": "number"}
+                    }
+                }
+            },
+            "decisions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "statement": {"type": "string"},
+                        "rationale": {"type": "string"},
+                        "owner": {"type": "string"},
+                        "confidence": {"type": "number"},
+                        "evidence_quote": {"type": "string"}
+                    }
+                }
+            },
+            "action_items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "description": {"type": "string"},
+                        "assignee": {"type": "string"},
+                        "due_date": {"type": "string"},
+                        "priority": {"type": "string", "enum": ["low", "medium", "high"]},
+                        "confidence": {"type": "number"}
+                    }
+                }
+            },
+            "projects": {"type": "array"},
+            "topics": {"type": "array"}
+        }
+    }
+}
+```
