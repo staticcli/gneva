@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://gneva:gneva@postgres:5432/gneva
+      - DATABASE_URL_SYNC=postgresql://gneva:gneva@postgres:5432/gneva
+      - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - RECALL_API_KEY=${RECALL_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./:/app
+    command: uvicorn gneva.main:app --reload --host 0.0.0.0 --port 8000
+
+  worker:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://gneva:gneva@postgres:5432/gneva
+      - DATABASE_URL_SYNC=postgresql://gneva:gneva@postgres:5432/gneva
+      - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: celery -A gneva.tasks worker --loglevel=info --concurrency=4
+
+  beat:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://gneva:gneva@postgres:5432/gneva
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_started
+    command: celery -A gneva.tasks beat --loglevel=info
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: gneva
+      POSTGRES_PASSWORD: gneva
+      POSTGRES_DB: gneva
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gneva"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+
+volumes:
+  pgdata:
