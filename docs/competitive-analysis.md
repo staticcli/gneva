@@ -1,4 +1,4 @@
-# Kura Competitive Analysis: AI Meeting Intelligence & Organizational Memory
+# Neva Competitive Analysis: AI Meeting Intelligence & Organizational Memory
 
 **Date:** March 10, 2026
 **Product Vision:** AI team member that joins meetings, builds organizational memory, and eventually participates with voice.
@@ -43,7 +43,7 @@ The AI Meeting Assistants market reached approximately **$3.0-3.5 billion in 202
 | **Fellow.app** | $7/mo Pro / $15/mo Business / $25/mo Enterprise | Meeting agendas, templates, action item tracking, HRIS integrations | Workflow tool more than intelligence tool, no voice, no deep AI memory |
 | **Read.ai** | Free (5 recordings) / $15/mo Pro / $22.50/mo Enterprise | Cross-platform intelligence (meetings + emails + messages), personal knowledge graph | Closest to organizational memory but still individual-focused, no voice participation |
 
-**Key insight:** Read.ai is the closest competitor to Kura's vision. They connect meetings, emails, messages, and documents into a personal knowledge graph with proactive agents. However, their focus is individual productivity, not team/organizational memory, and they have no voice participation capability.
+**Key insight:** Read.ai is the closest competitor to Neva's vision. They connect meetings, emails, messages, and documents into a personal knowledge graph with proactive agents. However, their focus is individual productivity, not team/organizational memory, and they have no voice participation capability.
 
 ---
 
@@ -67,7 +67,7 @@ The AI Meeting Assistants market reached approximately **$3.0-3.5 billion in 202
 | **Rewind.ai** | ~$19-20/mo Professional | Records everything on your screen, perfect recall | Privacy concerns (records everything), individual-only, no team memory, no meeting participation |
 | **Experio** | Enterprise (custom) | Knowledge graphs for consulting firms, institutional memory preservation | Professional services focused, not a meeting tool |
 
-**Gap:** Memory products don't attend meetings. Meeting products don't build organizational memory. This is the core gap Kura can exploit.
+**Gap:** Memory products don't attend meetings. Meeting products don't build organizational memory. This is the core gap Neva can exploit.
 
 ---
 
@@ -95,7 +95,7 @@ The AI Meeting Assistants market reached approximately **$3.0-3.5 billion in 202
 | **Zoom SDK** | Free (with limits) | Direct platform access | No direct live audio API access, complex OAuth, host presence rules |
 | **Teams Graph API** | Free (with limits) | Meeting metadata, transcripts (if enabled) | No programmatic recording control, requires Real-time Media Platform for audio |
 
-**Recommendation:** Use **Recall.ai** or **Nylas** rather than building direct platform integrations. Saves months of development. Recall.ai's Desktop Recording SDK could be particularly relevant for Kura's "no visible bot" approach.
+**Recommendation:** Use **Recall.ai** or **Nylas** rather than building direct platform integrations. Saves months of development. Recall.ai's Desktop Recording SDK could be particularly relevant for Neva's "no visible bot" approach.
 
 ### Real-Time Transcription
 
@@ -140,37 +140,37 @@ The AI Meeting Assistants market reached approximately **$3.0-3.5 billion in 202
 
 ---
 
-## 6. Strategic Gaps Kura Can Exploit
+## 6. Strategic Gaps Neva Can Exploit
 
 ### Gap 1: Organizational Memory (PRIMARY DIFFERENTIATOR)
 **Current state:** Every tool treats meetings as isolated events. Summaries are generated per-meeting and dumped into a feed. No tool builds a persistent, evolving knowledge graph of organizational context -- who knows what, what was decided, how decisions evolved, what the team's institutional knowledge is.
 
-**Kura opportunity:** Build a knowledge graph that connects entities (people, projects, decisions, commitments) across all meetings over time. When someone asks "What did we decide about the pricing strategy?" Kura doesn't just search transcripts -- it understands the arc of that discussion across 12 meetings over 3 months.
+**Neva opportunity:** Build a knowledge graph that connects entities (people, projects, decisions, commitments) across all meetings over time. When someone asks "What did we decide about the pricing strategy?" Neva doesn't just search transcripts -- it understands the arc of that discussion across 12 meetings over 3 months.
 
 ### Gap 2: Voice Participation (UNIQUE CAPABILITY)
 **Current state:** Zero products offer an AI that speaks in meetings. Every tool is a passive observer. Microsoft is experimenting with "interactive agents" in Teams but these are text-based Q&A, not voice participants.
 
-**Kura opportunity:** An AI that can speak up in meetings to provide context ("Last time this came up, the team decided X"), answer questions from organizational memory, or flag inconsistencies ("That contradicts what was agreed in the Q3 planning meeting"). This is genuinely novel.
+**Neva opportunity:** An AI that can speak up in meetings to provide context ("Last time this came up, the team decided X"), answer questions from organizational memory, or flag inconsistencies ("That contradicts what was agreed in the Q3 planning meeting"). This is genuinely novel.
 
 ### Gap 3: Cross-Platform, Cross-Channel Memory
 **Current state:** Read.ai is the only tool connecting meetings + email + messages, but it's individual-focused. Platform giants (Microsoft, Google) only work within their ecosystems.
 
-**Kura opportunity:** Team-wide memory that spans Zoom, Teams, Meet, Slack, email, and documents. Platform-agnostic organizational brain.
+**Neva opportunity:** Team-wide memory that spans Zoom, Teams, Meet, Slack, email, and documents. Platform-agnostic organizational brain.
 
 ### Gap 4: On-Premise / Privacy-First Deployment
 **Current state:** Nearly every tool is cloud-only. Granola and Krisp process audio locally but still send data to cloud for AI. Enterprise customers in regulated industries (healthcare, finance, government, defense) have no good options.
 
-**Kura opportunity:** Offer hybrid or fully on-premise deployment using local Whisper + local LLM. The tech is now mature enough (Whisper runs on consumer hardware, LLMs run on single GPUs). This unlocks regulated verticals that current competitors can't serve.
+**Neva opportunity:** Offer hybrid or fully on-premise deployment using local Whisper + local LLM. The tech is now mature enough (Whisper runs on consumer hardware, LLMs run on single GPUs). This unlocks regulated verticals that current competitors can't serve.
 
 ### Gap 5: Proactive Intelligence
 **Current state:** All tools are reactive -- you ask, they answer. Read.ai and Copilot are starting to surface proactive insights but it's rudimentary.
 
-**Kura opportunity:** Before a meeting, Kura proactively briefs participants: "Here's what was discussed last time, here are the open action items, here's relevant context from other meetings." During a meeting, it flags: "This topic was discussed in 3 previous meetings without resolution."
+**Neva opportunity:** Before a meeting, Neva proactively briefs participants: "Here's what was discussed last time, here are the open action items, here's relevant context from other meetings." During a meeting, it flags: "This topic was discussed in 3 previous meetings without resolution."
 
 ### Gap 6: Team Dynamics & Meeting Culture
 **Current state:** Some tools track speaking time. None provide genuine team dynamics intelligence -- who dominates, who gets interrupted, which meetings are productive vs. ceremonial.
 
-**Kura opportunity:** Ongoing team health metrics and recommendations. "Your sprint planning meetings have 40% more productive time than your status updates. Consider restructuring status updates."
+**Neva opportunity:** Ongoing team health metrics and recommendations. "Your sprint planning meetings have 40% more productive time than your status updates. Consider restructuring status updates."
 
 ---
 
@@ -190,17 +190,17 @@ The AI Meeting Assistants market reached approximately **$3.0-3.5 billion in 202
                     | Read.ai                        |
                     |                                |
    ORG-WIDE -------+--------------------------------+------
-                    | Gong, Chorus (sales only)      | ** KURA **
+                    | Gong, Chorus (sales only)      | ** NEVA **
                     | Microsoft Copilot, Gemini      |
                     | (platform-locked)              |
                     |                                |
 ```
 
-Kura occupies the only empty quadrant: **Organization-wide + Active participation.** No existing product combines persistent organizational memory with voice participation capability.
+Neva occupies the only empty quadrant: **Organization-wide + Active participation.** No existing product combines persistent organizational memory with voice participation capability.
 
 ---
 
-## 8. Recommended Kura Tech Stack
+## 8. Recommended Neva Tech Stack
 
 | Layer | Recommended | Alternative | Rationale |
 |-------|-------------|-------------|-----------|
@@ -230,13 +230,13 @@ Kura occupies the only empty quadrant: **Organization-wide + Active participatio
 - Differentiate on organizational memory alone
 
 **Phase 2 - Text Participation (Months 6-9)**
-- Kura posts in meeting chat: context, reminders, relevant past decisions
+- Neva posts in meeting chat: context, reminders, relevant past decisions
 - Slack/Teams integration for async follow-up
 - Meeting culture analytics
 
 **Phase 3 - Voice Participation (Months 9-15)**
 - ElevenLabs voice synthesis for spoken contributions
-- Start with opt-in moments: "Kura, what did we decide about X?"
+- Start with opt-in moments: "Neva, what did we decide about X?"
 - Graduate to proactive voice: flagging contradictions, providing context
 
 **Phase 4 - Full AI Team Member (Months 15+)**
