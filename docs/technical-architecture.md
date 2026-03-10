@@ -1,4 +1,4 @@
-# Neva: Technical Architecture Document
+# Ggneva: Technical Architecture Document
 
 **Version:** 0.1 — Initial Draft
 **Date:** 2026-03-10
@@ -25,7 +25,7 @@
 
 ## 1. Product Overview
 
-Neva is an AI team member that joins meetings, accumulates organizational memory, and progressively evolves from a silent observer into an active voice participant and autonomous project manager. Unlike meeting recording tools, Neva builds a living knowledge graph of an organization's decisions, commitments, and relationships — and uses that graph to reason, advise, and eventually act.
+Ggneva is an AI team member that joins meetings, accumulates organizational memory, and progressively evolves from a silent observer into an active voice participant and autonomous project manager. Unlike meeting recording tools, Ggneva builds a living knowledge graph of an organization's decisions, commitments, and relationships — and uses that graph to reason, advise, and eventually act.
 
 ### Growth Stages
 
@@ -121,7 +121,7 @@ Neva is an AI team member that joins meetings, accumulates organizational memory
 ┌─────────────────────────────────────────────────────┐
 │                   Docker Network                    │
 │                                                     │
-│  neva-api       neva-worker      neva-beat          │
+│  gneva-api       gneva-worker      gneva-beat          │
 │  (FastAPI)      (Celery)         (Celery scheduler) │
 │      │               │                 │            │
 │      └───────────────┴─────────────────┘            │
@@ -131,7 +131,7 @@ Neva is an AI team member that joins meetings, accumulates organizational memory
 │         postgres             redis                  │
 │         (port 5432)          (port 6379)            │
 │                                                     │
-│  neva-bot-manager   neva-voice                      │
+│  gneva-bot-manager   gneva-voice                      │
 │  (Recall.ai mgmt)   (ElevenLabs, Stage 4+)          │
 └─────────────────────────────────────────────────────┘
 ```
@@ -165,7 +165,7 @@ Neva is an AI team member that joins meetings, accumulates organizational memory
 |-----------|--------|-----------|
 | Embeddings | nomic-embed-text-v1.5 | 384-dim (vs 1536 for OpenAI); 3x cheaper storage; competitive retrieval quality; runs locally on CPU, avoiding API costs for high-volume embedding |
 | Extraction & Reasoning | Claude API (Haiku / Sonnet) | Haiku for entity extraction (cheap, fast); Sonnet for complex reasoning, contradiction detection, meeting summaries; structured JSON output via tool use |
-| Voice synthesis | ElevenLabs | Best-in-class voice quality; voice cloning for consistent Neva identity; supports streaming for low-latency meeting participation (Stage 4+) |
+| Voice synthesis | ElevenLabs | Best-in-class voice quality; voice cloning for consistent Ggneva identity; supports streaming for low-latency meeting participation (Stage 4+) |
 
 ### Rationale: Single DB vs. Separate Vector DB
 
@@ -360,8 +360,8 @@ CREATE TABLE contradictions (
     resolved_at     TIMESTAMPTZ
 );
 
--- Neva's message log (for Slack/Teams and meeting voice)
-CREATE TABLE neva_messages (
+-- Ggneva's message log (for Slack/Teams and meeting voice)
+CREATE TABLE gneva_messages (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id          UUID NOT NULL REFERENCES organizations(id),
     meeting_id      UUID REFERENCES meetings(id),
@@ -421,7 +421,7 @@ GET    /api/memory/entities/{id}/history     # how this entity evolved over meet
 GET    /api/memory/decisions                 # all active decisions
 GET    /api/memory/contradictions            # detected contradictions
 
-POST   /api/ask                              # freeform question to Neva (RAG-grounded answer)
+POST   /api/ask                              # freeform question to Ggneva (RAG-grounded answer)
 GET    /api/ask/history                      # past Q&A log
 
 GET    /api/actions                          # all open action items across org
@@ -760,10 +760,10 @@ New components: `notifier/slack.py`, `notifier/email.py`, `summarizer.py`
 
 ### Stage 3: Async Team Member
 
-Neva joins Slack/Teams as a bot user and listens for:
-- Direct mentions: `@neva what did we decide about X?`
-- Channel keywords: `neva help`, `neva find`
-- Slash command: `/neva ask ...`
+Ggneva joins Slack/Teams as a bot user and listens for:
+- Direct mentions: `@gneva what did we decide about X?`
+- Channel keywords: `gneva help`, `gneva find`
+- Slash command: `/gneva ask ...`
 
 Answer pipeline: question → embed → hybrid retrieval → Claude Sonnet with RAG context → response.
 
@@ -773,15 +773,15 @@ New components: `integrations/slack_bot.py`, `integrations/teams_bot.py`, `qa/re
 
 Real-time audio path with Deepgram for live transcription.
 
-Turn detection: Neva monitors the live transcript for:
-- Direct address: "Neva, what do we know about..."
+Turn detection: Ggneva monitors the live transcript for:
+- Direct address: "Ggneva, what do we know about..."
 - Natural break (2s silence after a question)
 - Pre-configured trigger phrases
 
 Voice synthesis: ElevenLabs streaming TTS → Recall.ai injects audio into meeting.
 
 Constraint management:
-- Max 1 Neva interjection per 5 minutes unless directly addressed
+- Max 1 Ggneva interjection per 5 minutes unless directly addressed
 - Never interrupt — wait for complete pause
 - Configurable verbosity level per org (quiet / balanced / proactive)
 
@@ -814,7 +814,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://neva:neva@postgres:5432/neva
+      - DATABASE_URL=postgresql://gneva:gneva@postgres:5432/gneva
       - REDIS_URL=redis://redis:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - RECALL_API_KEY=${RECALL_API_KEY}
@@ -824,17 +824,17 @@ services:
       - redis
     volumes:
       - ./:/app
-    command: uvicorn neva.main:app --reload --host 0.0.0.0 --port 8000
+    command: uvicorn gneva.main:app --reload --host 0.0.0.0 --port 8000
 
   worker:
     build: .
     environment:
-      - DATABASE_URL=postgresql://neva:neva@postgres:5432/neva
+      - DATABASE_URL=postgresql://gneva:gneva@postgres:5432/gneva
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - postgres
       - redis
-    command: celery -A neva.tasks worker --loglevel=info --concurrency=4
+    command: celery -A gneva.tasks worker --loglevel=info --concurrency=4
     deploy:
       resources:
         reservations:
@@ -844,18 +844,18 @@ services:
   beat:
     build: .
     environment:
-      - DATABASE_URL=postgresql://neva:neva@postgres:5432/neva
+      - DATABASE_URL=postgresql://gneva:gneva@postgres:5432/gneva
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - redis
-    command: celery -A neva.tasks beat --loglevel=info
+    command: celery -A gneva.tasks beat --loglevel=info
 
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: neva
-      POSTGRES_PASSWORD: neva
-      POSTGRES_DB: neva
+      POSTGRES_USER: gneva
+      POSTGRES_PASSWORD: gneva
+      POSTGRES_DB: gneva
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -921,12 +921,12 @@ volumes:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: neva-api-hpa
+  name: gneva-api-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: neva-api
+    name: gneva-api
   minReplicas: 3
   maxReplicas: 20
   metrics:
@@ -1104,12 +1104,12 @@ Different task types have very different resource profiles:
 ```python
 # celery app configuration
 app.conf.task_routes = {
-    "neva.tasks.transcribe": {"queue": "gpu"},        # GPU nodes
-    "neva.tasks.diarize": {"queue": "cpu_heavy"},     # high CPU
-    "neva.tasks.extract_entities": {"queue": "io"},   # network-bound (Claude API)
-    "neva.tasks.embed": {"queue": "cpu_heavy"},
-    "neva.tasks.summarize": {"queue": "io"},
-    "neva.tasks.notify": {"queue": "default"},
+    "gneva.tasks.transcribe": {"queue": "gpu"},        # GPU nodes
+    "gneva.tasks.diarize": {"queue": "cpu_heavy"},     # high CPU
+    "gneva.tasks.extract_entities": {"queue": "io"},   # network-bound (Claude API)
+    "gneva.tasks.embed": {"queue": "cpu_heavy"},
+    "gneva.tasks.summarize": {"queue": "io"},
+    "gneva.tasks.notify": {"queue": "default"},
 }
 ```
 
@@ -1166,8 +1166,8 @@ Alerting:
 ## Appendix A: Directory Structure
 
 ```
-neva/
-├── neva/
+gneva/
+├── gneva/
 │   ├── main.py                    # FastAPI app factory
 │   ├── config.py                  # Settings (pydantic-settings)
 │   ├── db.py                      # AsyncPG connection pool

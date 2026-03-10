@@ -1,4 +1,4 @@
-# Neva: Product Design & UX Document
+# Ggneva: Product Design & UX Document
 
 **Version:** 1.0
 **Date:** 2026-03-10
@@ -14,7 +14,7 @@
 4. [Information Architecture](#4-information-architecture)
 5. [Growth Stages & User Journeys](#5-growth-stages--user-journeys)
 6. [Key Screens & Wireframe Descriptions](#6-key-screens--wireframe-descriptions)
-7. [@Neva Interaction Library](#7-neva-interaction-library)
+7. [@Ggneva Interaction Library](#7-gneva-interaction-library)
 8. [Onboarding Flow](#8-onboarding-flow)
 9. [Pricing Strategy](#9-pricing-strategy)
 10. [Growth Loops & Viral Mechanics](#10-growth-loops--viral-mechanics)
@@ -25,25 +25,25 @@
 
 ### 1.1 Name & Meaning
 
-**Neva** carries dual cultural resonance that anchors the product's core promise:
+**Ggneva** carries dual cultural resonance that anchors the product's core promise:
 
-- **Maori:** *Neva* means "to grow" or "to nurture" — capturing the product's defining behavior: it starts small, learns your organization, and becomes more valuable over time.
-- **Japanese:** *Neva* (蔵) means "treasure" or "storehouse" — a place where things of value are kept safe and accessible. Organizational memory is a treasure most companies lose.
+- **Maori:** *Ggneva* means "to grow" or "to nurture" — capturing the product's defining behavior: it starts small, learns your organization, and becomes more valuable over time.
+- **Japanese:** *Ggneva* (蔵) means "treasure" or "storehouse" — a place where things of value are kept safe and accessible. Organizational memory is a treasure most companies lose.
 
-The name is short, pronounceable in every major language, and distinctive in the productivity SaaS landscape. It does not sound like a tool. It sounds like a name — because Neva is a team member, not software.
+The name is short, pronounceable in every major language, and distinctive in the productivity SaaS landscape. It does not sound like a tool. It sounds like a name — because Ggneva is a team member, not software.
 
 ### 1.2 Positioning Statement
 
-> Neva is the AI team member that joins your meetings, remembers everything, and grows more useful over time — from a silent note-taker on day one to a proactive project manager that represents your team's collective intelligence.
+> Ggneva is the AI team member that joins your meetings, remembers everything, and grows more useful over time — from a silent note-taker on day one to a proactive project manager that represents your team's collective intelligence.
 
 ### 1.3 Brand Voice
 
 | Dimension | Description | Example |
 |-----------|-------------|---------|
 | **Tone** | Warm, precise, never verbose | "Here's what I found." not "I've analyzed your meeting corpus and synthesized the following insights." |
-| **Personality** | Curious, discreet, quietly confident | Neva observes before speaking. When it speaks, it's useful. |
-| **Relationship** | Colleague, not assistant | Neva has memory, initiative, and judgment — it's not a search engine |
-| **Growth** | Earns trust incrementally | Neva never overreaches. It asks before acting at higher autonomy levels. |
+| **Personality** | Curious, discreet, quietly confident | Ggneva observes before speaking. When it speaks, it's useful. |
+| **Relationship** | Colleague, not assistant | Ggneva has memory, initiative, and judgment — it's not a search engine |
+| **Growth** | Earns trust incrementally | Ggneva never overreaches. It asks before acting at higher autonomy levels. |
 
 **Voice DOs:**
 - Use first-person sparingly and only when acting: "I noticed three people mentioned the API timeline."
@@ -61,26 +61,26 @@ The name is short, pronounceable in every major language, and distinctive in the
 
 | Name | Hex | Usage |
 |------|-----|-------|
-| **Neva Deep** | `#1A1A2E` | Primary backgrounds, deep UI surfaces |
-| **Neva Teal** | `#0D9488` | Primary action color, Neva's presence indicator |
-| **Neva Sage** | `#6EE7B7` | Active states, growth indicators, positive signals |
-| **Neva Warm White** | `#F8F7F4` | Primary background (light mode) |
-| **Neva Stone** | `#9CA3AF` | Secondary text, subdued UI elements |
-| **Neva Amber** | `#F59E0B` | Warnings, flags, contradictions detected |
-| **Neva Slate** | `#334155` | Body text (light mode) |
+| **Ggneva Deep** | `#1A1A2E` | Primary backgrounds, deep UI surfaces |
+| **Ggneva Teal** | `#0D9488` | Primary action color, Ggneva's presence indicator |
+| **Ggneva Sage** | `#6EE7B7` | Active states, growth indicators, positive signals |
+| **Ggneva Warm White** | `#F8F7F4` | Primary background (light mode) |
+| **Ggneva Stone** | `#9CA3AF` | Secondary text, subdued UI elements |
+| **Ggneva Amber** | `#F59E0B` | Warnings, flags, contradictions detected |
+| **Ggneva Slate** | `#334155` | Body text (light mode) |
 
 #### Typography
 
 - **Display / Headings:** Inter (700 weight) — clean, modern, trustworthy
 - **Body:** Inter (400/500 weight) — readable at small sizes
 - **Monospace / Transcripts:** JetBrains Mono — clear for quoted speech and code
-- **Neva's own voice:** Rendered in Neva Teal with a subtle left-border indicator to distinguish AI-generated content from human-authored content
+- **Ggneva's own voice:** Rendered in Ggneva Teal with a subtle left-border indicator to distinguish AI-generated content from human-authored content
 
 #### Iconography
 
 - Line-weight icons (1.5px stroke), rounded caps — approachable, not clinical
-- Neva's avatar: an abstract, stylized leaf-spiral glyph that suggests growth and listening simultaneously. Never a robot, never a generic chat bubble.
-- The avatar subtly animates when Neva is processing or speaking: a slow breathing pulse, never frantic
+- Ggneva's avatar: an abstract, stylized leaf-spiral glyph that suggests growth and listening simultaneously. Never a robot, never a generic chat bubble.
+- The avatar subtly animates when Ggneva is processing or speaking: a slow breathing pulse, never frantic
 
 #### Spacing & Layout
 
@@ -92,8 +92,8 @@ The name is short, pronounceable in every major language, and distinctive in the
 #### Motion Principles
 
 - Transitions: 200ms ease-out (fast, purposeful)
-- Neva's "thinking" state: a gentle wave animation on the avatar, not a spinner
-- New memory entries: slide in from bottom-right (Neva adding to its knowledge)
+- Ggneva's "thinking" state: a gentle wave animation on the avatar, not a spinner
+- New memory entries: slide in from bottom-right (Ggneva adding to its knowledge)
 - Contradictions or flags: amber pulse, not a jarring alert
 
 ---
@@ -112,19 +112,19 @@ Sarah has been an EM for three years. She promoted from senior engineer and stil
 **Primary Pain:**
 She has no continuity between meetings. A decision made in a sprint planning on Monday contradicts something agreed in a stakeholder sync on Wednesday, and she only discovers this when someone is angry. She spends Sunday evenings writing status updates she could reconstruct from her own calendar if she had time.
 
-**Goals with Neva:**
+**Goals with Ggneva:**
 - Never walk into a meeting without context on what was last discussed
 - Know immediately when a decision in one meeting conflicts with another
 - Stop being the human memory layer for her entire team
 
-**Key Neva interactions:**
+**Key Ggneva interactions:**
 - Pre-meeting briefs before every calendar event
 - Cross-meeting contradiction detection
-- @Neva as a fast alternative to digging through Notion
+- @Ggneva as a fast alternative to digging through Notion
 
-**Adoption trigger:** The first time Neva surfaces a contradiction Sarah hadn't noticed — and prevents a bad deployment decision.
+**Adoption trigger:** The first time Ggneva surfaces a contradiction Sarah hadn't noticed — and prevents a bad deployment decision.
 
-**Resistance point:** Sarah is protective of her team's privacy. She needs to trust that Neva isn't surfacing sensitive 1:1 content in team-wide contexts.
+**Resistance point:** Sarah is protective of her team's privacy. She needs to trust that Ggneva isn't surfacing sensitive 1:1 content in team-wide contexts.
 
 ---
 
@@ -140,19 +140,19 @@ Marcus is excellent at building consensus — his challenge is maintaining it. D
 **Primary Pain:**
 Decision provenance. When a feature requirement changes, Marcus needs to know: who said what, in which meeting, and what was the reasoning. Not to assign blame — to understand if the reasoning still applies or if circumstances have changed.
 
-**Goals with Neva:**
+**Goals with Ggneva:**
 - An always-current source of truth for every product decision
 - The ability to ask "what's the latest on X?" and get an answer that synthesizes across meetings, not just summarizes the last one
 - Pre-written briefs for new stakeholders so he's not constantly re-explaining context
 
-**Key Neva interactions:**
-- Decision arc queries ("@Neva what's the history of our pricing decision?")
+**Key Ggneva interactions:**
+- Decision arc queries ("@Ggneva what's the history of our pricing decision?")
 - Contradiction detection between product commitments
 - Automated stakeholder briefs before key reviews
 
-**Adoption trigger:** Neva generates a pre-meeting brief for a critical stakeholder review that Marcus would have spent 90 minutes writing himself.
+**Adoption trigger:** Ggneva generates a pre-meeting brief for a critical stakeholder review that Marcus would have spent 90 minutes writing himself.
 
-**Resistance point:** Marcus is skeptical of AI accuracy. He needs to be able to verify sources — to click through from a Neva summary to the exact transcript moment it's citing.
+**Resistance point:** Marcus is skeptical of AI accuracy. He needs to be able to verify sources — to click through from a Ggneva summary to the exact transcript moment it's citing.
 
 ---
 
@@ -168,19 +168,19 @@ Priya is three levels removed from where most decisions happen. Her EMs tell her
 **Primary Pain:**
 She doesn't have a reliable picture of what her organization is actually working on, what's blocked, and where the same problems are occurring repeatedly. Every quarter planning cycle feels like reconstructing reality from scratch.
 
-**Goals with Neva:**
+**Goals with Ggneva:**
 - Org-wide meeting intelligence without having to attend everything
 - Patterns across teams: who's consistently blocked? What topics keep recurring?
 - Meeting culture metrics: are her teams running effective meetings or burning cycles?
 
-**Key Neva interactions:**
+**Key Ggneva interactions:**
 - Team Insights dashboard: org-level speaking patterns, decision velocity
 - Cross-team topic clustering: "API performance" appearing in 7 different team meetings
 - Automated escalation detection: recurring blockers that haven't been resolved
 
-**Adoption trigger:** Neva's Team Insights show that one sub-team has had the same blocker mentioned in 4 consecutive sprint plannings without escalation. Priya addresses it proactively.
+**Adoption trigger:** Ggneva's Team Insights show that one sub-team has had the same blocker mentioned in 4 consecutive sprint plannings without escalation. Priya addresses it proactively.
 
-**Resistance point:** Priya is the primary compliance concern. She needs air-tight data retention policies and the ability to define what Neva can and cannot cross-reference across reporting lines.
+**Resistance point:** Priya is the primary compliance concern. She needs air-tight data retention policies and the ability to define what Ggneva can and cannot cross-reference across reporting lines.
 
 ---
 
@@ -196,19 +196,19 @@ James has been in sales for 12 years. He's fundamentally a relationship person �
 **Primary Pain:**
 Relationship and deal context is siloed in individual AEs' heads. When an AE leaves or hands off an account, that context disappears. When James jumps in to help close, he has to be briefed — which slows everything down and signals disorganization to the prospect.
 
-**Goals with Neva:**
+**Goals with Ggneva:**
 - Every prospect meeting logged with extracted entities (names, pain points, objections, timelines)
 - Deal context accessible to any team member who needs to step in
 - Relationship memory: who said what, what matters to them, where they are in their journey
 
-**Key Neva interactions:**
-- "@Neva brief me on Acme Corp ahead of tomorrow's call"
-- "@Neva what were TechCorp's main objections last quarter?"
-- "@Neva who have we talked to at Meridian and what's their org structure?"
+**Key Ggneva interactions:**
+- "@Ggneva brief me on Acme Corp ahead of tomorrow's call"
+- "@Ggneva what were TechCorp's main objections last quarter?"
+- "@Ggneva who have we talked to at Meridian and what's their org structure?"
 
-**Adoption trigger:** A new AE inherits a deal mid-cycle. Instead of starting from scratch, they ask @Neva for a deal brief and walk into the meeting prepared. The prospect notices.
+**Adoption trigger:** A new AE inherits a deal mid-cycle. Instead of starting from scratch, they ask @Ggneva for a deal brief and walk into the meeting prepared. The prospect notices.
 
-**Resistance point:** James needs to ensure prospect conversations are treated with appropriate sensitivity — he needs granular control over which meetings Neva can reference when answering team queries.
+**Resistance point:** James needs to ensure prospect conversations are treated with appropriate sensitivity — he needs granular control over which meetings Ggneva can reference when answering team queries.
 
 ---
 
@@ -224,19 +224,19 @@ Chen is technically excellent and operationally overwhelmed. The company has pro
 **Primary Pain:**
 No organizational memory, no accountability layer. Chen is the only person holding all the threads, and that's unsustainable. Hiring a PM is expensive and premature at current ARR.
 
-**Goals with Neva:**
+**Goals with Ggneva:**
 - A PM-like capability without the $150K/year hire
 - Automatic action item tracking across all team meetings
 - The ability to ask "what's the status of X?" and get an answer from meeting history, not just a blank stare
 
-**Key Neva interactions:**
-- Neva acting as async PM: tracking action items, following up on blockers
+**Key Ggneva interactions:**
+- Ggneva acting as async PM: tracking action items, following up on blockers
 - Pre-meeting briefs generated automatically for every calendar invite
-- "@Neva what did we decide about the API pricing last week?"
+- "@Ggneva what did we decide about the API pricing last week?"
 
-**Adoption trigger:** Chen discovers Neva has been silently tracking 23 open action items from the last month of meetings — and two of them are overdue with nobody aware.
+**Adoption trigger:** Chen discovers Ggneva has been silently tracking 23 open action items from the last month of meetings — and two of them are overdue with nobody aware.
 
-**Resistance point:** Chen needs this to be extremely simple to set up. No IT team, no complex configuration. Neva should work on day one with calendar + Google Meet or Zoom integration.
+**Resistance point:** Chen needs this to be extremely simple to set up. No IT team, no complex configuration. Ggneva should work on day one with calendar + Google Meet or Zoom integration.
 
 ---
 
@@ -244,37 +244,37 @@ No organizational memory, no accountability layer. Chen is the only person holdi
 
 ### 3.1 Earn Presence
 
-Neva does not demand attention. It earns it. Every surface should feel like Neva is adding value quietly, not demanding to be noticed. Notifications are sparse and high-signal. The dashboard is informative, not noisy.
+Ggneva does not demand attention. It earns it. Every surface should feel like Ggneva is adding value quietly, not demanding to be noticed. Notifications are sparse and high-signal. The dashboard is informative, not noisy.
 
-*Applied to UI:* Neva's activity is surfaced in context (pre-meeting brief appears on the calendar event, not as a separate notification) rather than forced into the foreground.
+*Applied to UI:* Ggneva's activity is surfaced in context (pre-meeting brief appears on the calendar event, not as a separate notification) rather than forced into the foreground.
 
 ### 3.2 Show Your Work
 
-Every Neva insight must be traceable to its source. When Neva says "the team decided to delay API v2," there is always a citation link to the exact transcript moment. Trust is built on verifiability.
+Every Ggneva insight must be traceable to its source. When Ggneva says "the team decided to delay API v2," there is always a citation link to the exact transcript moment. Trust is built on verifiability.
 
-*Applied to UI:* All Neva-generated summaries, decisions, and answers include collapsible source citations. Click any claim → see the meeting, timestamp, and speaker.
+*Applied to UI:* All Ggneva-generated summaries, decisions, and answers include collapsible source citations. Click any claim → see the meeting, timestamp, and speaker.
 
 ### 3.3 Respect Grows
 
-Neva's permissions and autonomy level are explicit, user-controlled, and conservative by default. Users should always feel like Neva is doing less than it could, not more than it should.
+Ggneva's permissions and autonomy level are explicit, user-controlled, and conservative by default. Users should always feel like Ggneva is doing less than it could, not more than it should.
 
-*Applied to UI:* The Growth Stage control on the Settings page is a first-class UI element, not buried in preferences. Users see exactly what Neva is allowed to do at their current stage, and what it would do if promoted.
+*Applied to UI:* The Growth Stage control on the Settings page is a first-class UI element, not buried in preferences. Users see exactly what Ggneva is allowed to do at their current stage, and what it would do if promoted.
 
 ### 3.4 Memory Is Sacred
 
-Organizational conversations contain sensitive information. Neva's data model must make privacy intuitive — who can see what, how long it's retained, and where it lives should be obvious, not buried in a ToS.
+Organizational conversations contain sensitive information. Ggneva's data model must make privacy intuitive — who can see what, how long it's retained, and where it lives should be obvious, not buried in a ToS.
 
 *Applied to UI:* Meeting-level privacy controls appear immediately when a meeting is added. Data residency is visible in the footer of every page. Admins have a dedicated compliance console.
 
 ### 3.5 Surface Patterns, Not Data
 
-Neva's value is synthesis, not storage. Any interaction that surfaces raw data without insight is a missed opportunity. The UX should consistently ask: what's the pattern here? What does this mean for the user?
+Ggneva's value is synthesis, not storage. Any interaction that surfaces raw data without insight is a missed opportunity. The UX should consistently ask: what's the pattern here? What does this mean for the user?
 
 *Applied to UI:* Meeting summaries lead with the 3 most important things, not a chronological recap. Team Insights leads with anomalies and trends, not charts of meeting counts.
 
 ### 3.6 Growth Is Visible
 
-Users should feel Neva getting smarter over time. The product should make this tangible: memory health indicators, entity graphs that grow, confidence levels that increase with more meetings.
+Users should feel Ggneva getting smarter over time. The product should make this tangible: memory health indicators, entity graphs that grow, confidence levels that increase with more meetings.
 
 *Applied to UI:* The Memory Health widget on the dashboard shows growth over time. The Knowledge Explorer graph visibly expands as more meetings are ingested.
 
@@ -283,13 +283,13 @@ Users should feel Neva getting smarter over time. The product should make this t
 ## 4. Information Architecture
 
 ```
-Neva
+Ggneva
 ├── Dashboard (/)
 │   ├── Recent Meetings Feed
 │   ├── Upcoming Meetings (with brief status)
 │   ├── Memory Health Widget
 │   ├── Active Action Items
-│   └── Recent @Neva Activity
+│   └── Recent @Ggneva Activity
 │
 ├── Meetings (/meetings)
 │   ├── Meeting List (filterable by project, person, date)
@@ -298,7 +298,7 @@ Neva
 │       ├── Transcript (searchable, speaker-labeled)
 │       ├── Entities Extracted (people, projects, decisions, dates)
 │       ├── Action Items
-│       ├── Neva's Notes
+│       ├── Ggneva's Notes
 │       └── Related Meetings
 │
 ├── Knowledge (/knowledge)
@@ -311,7 +311,7 @@ Neva
 │   ├── Projects (/knowledge/projects)
 │   └── People (/knowledge/people)
 │
-├── @Neva Chat (/chat)
+├── @Ggneva Chat (/chat)
 │   ├── Conversation interface
 │   ├── Suggested queries
 │   └── Conversation history
@@ -326,7 +326,7 @@ Neva
 ├── Settings (/settings)
 │   ├── Integrations (Calendar, Slack, Zoom, Meet)
 │   ├── Meeting Privacy Rules
-│   ├── Neva's Growth Stage
+│   ├── Ggneva's Growth Stage
 │   ├── Notification Preferences
 │   └── Personal Data Controls
 │
@@ -346,8 +346,8 @@ Neva
 **Tertiary navigation:** Breadcrumbs for deep paths
 
 **Global persistent elements:**
-- @Neva chat input bar (bottom of every page, collapsed by default, expands on focus)
-- Neva status indicator (top-right: shows Neva's current activity — "In your 2pm meeting," "Processing 3 meetings")
+- @Ggneva chat input bar (bottom of every page, collapsed by default, expands on focus)
+- Ggneva status indicator (top-right: shows Ggneva's current activity — "In your 2pm meeting," "Processing 3 meetings")
 - Notifications bell (top-right, sparse — only high-signal alerts)
 
 ---
@@ -357,35 +357,35 @@ Neva
 ### Stage 1: Silent Observer — "I noticed"
 
 **Unlock condition:** First meeting joined
-**What Neva can do:** Join meetings silently, generate post-meeting summaries, extract entities (people, projects, decisions, action items), begin building memory graph
-**What Neva cannot do:** Respond to @Neva queries (no memory yet), speak in meetings, proactively message
+**What Ggneva can do:** Join meetings silently, generate post-meeting summaries, extract entities (people, projects, decisions, action items), begin building memory graph
+**What Ggneva cannot do:** Respond to @Ggneva queries (no memory yet), speak in meetings, proactively message
 
 **User Journey — Sarah (Engineering Manager):**
 
 *Day 1, 9:00 AM*
-Sarah installs Neva from the Google Workspace Marketplace. She authorizes her Google Calendar. Neva appears as a calendar event guest on her 10:00 AM sprint planning.
+Sarah installs Ggneva from the Google Workspace Marketplace. She authorizes her Google Calendar. Ggneva appears as a calendar event guest on her 10:00 AM sprint planning.
 
 *Day 1, 10:00 AM*
-Neva joins the sprint planning as "Neva (notes)." Its camera tile shows its avatar in a neutral, listening state. No one interacts with it.
+Ggneva joins the sprint planning as "Ggneva (notes)." Its camera tile shows its avatar in a neutral, listening state. No one interacts with it.
 
 *Day 1, 10:52 AM — 4 minutes after meeting ends*
-Sarah receives a Slack DM from Neva:
+Sarah receives a Slack DM from Ggneva:
 
 > **Sprint Planning — March 10**
 > **3 decisions made:** (1) Move user auth to next sprint. (2) API timeout threshold stays at 30s. (3) Marcus owns the Figma handoff by Friday.
 > **4 action items tracked**
 > **1 thing I noticed:** The API timeout was also discussed in your stakeholder sync on March 7th with a different conclusion. Want me to flag this?
 
-Sarah clicks "Yes, flag it." This is her first experience of Neva's cross-meeting memory.
+Sarah clicks "Yes, flag it." This is her first experience of Ggneva's cross-meeting memory.
 
 *Day 3*
-Sarah has had 6 meetings. Neva has generated 6 summaries. She's started opening them before her next meeting to refresh context.
+Sarah has had 6 meetings. Ggneva has generated 6 summaries. She's started opening them before her next meeting to refresh context.
 
 *Day 5*
-Neva's memory graph now has 14 people, 6 projects, and 23 decisions. The Knowledge Explorer starts to look like something.
+Ggneva's memory graph now has 14 people, 6 projects, and 23 decisions. The Knowledge Explorer starts to look like something.
 
 **UX notes for Stage 1:**
-- Neva's presence in meetings is visually minimal — a small avatar tile that does not animate or draw attention
+- Ggneva's presence in meetings is visually minimal — a small avatar tile that does not animate or draw attention
 - Post-meeting summaries are delivered via the user's preferred channel (email, Slack, or in-app notification)
 - The dashboard shows "Memory building..." with a health percentage that rises as meetings accumulate
 - Users can toggle "join silently" vs. "don't join" per meeting from the calendar integration
@@ -400,10 +400,10 @@ Neva's memory graph now has 14 people, 6 projects, and 23 decisions. The Knowled
 **User Journey — Marcus (Product Manager):**
 
 *Week 2*
-Marcus has been using Neva for 10 days. He's promoted it to Stage 2. Now, when he opens his calendar the morning before a meeting, there's a "Neva Brief" button on each event.
+Marcus has been using Ggneva for 10 days. He's promoted it to Stage 2. Now, when he opens his calendar the morning before a meeting, there's a "Ggneva Brief" button on each event.
 
 *8:45 AM, before a stakeholder review*
-Marcus clicks "Neva Brief" on his 9:00 AM Product Review. Neva generates:
+Marcus clicks "Ggneva Brief" on his 9:00 AM Product Review. Ggneva generates:
 
 > **Product Review Brief — March 12**
 > **Last time:** March 5th. Decisions: Delay checkout redesign to Q2. Escalation: Payment team still needs more API documentation.
@@ -414,7 +414,7 @@ Marcus clicks "Neva Brief" on his 9:00 AM Product Review. Neva generates:
 Marcus reads this in 90 seconds. He walks into the meeting already the most prepared person in the room.
 
 *Pattern detection — Week 3*
-Neva sends Marcus a proactive insight:
+Ggneva sends Marcus a proactive insight:
 
 > **Pattern detected:** "API performance" has come up in 6 different meetings across 4 teams in the past 2 weeks — but there's no owner and no decision. This might be worth a dedicated conversation.
 
@@ -423,23 +423,23 @@ Marcus forwards this to Priya. It becomes the foundation of a new working group.
 **UX notes for Stage 2:**
 - Pre-meeting briefs appear as a banner on calendar events in the dashboard, with a "View Brief" CTA
 - Contradiction flags are shown as amber indicators on Meeting Detail pages with a "Compare meetings" view
-- Action item follow-up: Neva sends a gentle reminder 24 hours before a deadline if an action item hasn't been marked complete
+- Action item follow-up: Ggneva sends a gentle reminder 24 hours before a deadline if an action item hasn't been marked complete
 
 ---
 
 ### Stage 3: Async Team Member — "Let me help"
 
 **Unlock condition:** Slack/Teams integration connected, 25+ meetings ingested, Stage 2 active for 7+ days
-**New capabilities:** @Neva in Slack answers questions from memory, @Neva in meeting notes pulls context, cross-meeting search, ownership tracking
+**New capabilities:** @Ggneva in Slack answers questions from memory, @Ggneva in meeting notes pulls context, cross-meeting search, ownership tracking
 
 **User Journey — Chen (CEO):**
 
 *Monday morning, Slack*
 Chen types in #product channel:
 
-> @Neva what did we decide about the free trial length last week?
+> @Ggneva what did we decide about the free trial length last week?
 
-Neva responds in 8 seconds:
+Ggneva responds in 8 seconds:
 
 > In your All-Hands on March 8th, the team decided to extend the free trial from 7 to 14 days. The reasoning was that activation data showed users needed 10–12 days to reach the "aha moment." Alex owns updating the onboarding flow to reflect this by March 15th.
 > [View meeting moment →]
@@ -449,7 +449,7 @@ Three teammates react with 👀 — they hadn't remembered this decision either.
 *Wednesday, before a customer call*
 Chen asks:
 
-> @Neva brief me on Meridian Capital ahead of my 3pm call
+> @Ggneva brief me on Meridian Capital ahead of my 3pm call
 
 > **Meridian Capital**
 > 4 conversations since January. Last contact: Feb 28 (demo call, Alex ran it).
@@ -461,10 +461,10 @@ Chen asks:
 Chen copies this into his prep doc. He goes into the call more prepared than any sales call in the last quarter.
 
 **UX notes for Stage 3:**
-- @Neva in Slack surfaces sourced answers with a "view source" link to the exact meeting moment
-- In-channel responses are visible to everyone in the channel — this is intentional. It builds social proof and demonstrates Neva's value publicly.
-- If a query touches a meeting with restricted permissions, Neva responds: "I have context on this, but it's from a restricted meeting. I can share general patterns but not specifics — want me to flag this to the meeting owner?"
-- The @Neva Chat interface in the web app shows conversation history, suggested follow-up queries, and confidence indicators
+- @Ggneva in Slack surfaces sourced answers with a "view source" link to the exact meeting moment
+- In-channel responses are visible to everyone in the channel — this is intentional. It builds social proof and demonstrates Ggneva's value publicly.
+- If a query touches a meeting with restricted permissions, Ggneva responds: "I have context on this, but it's from a restricted meeting. I can share general patterns but not specifics — want me to flag this to the meeting owner?"
+- The @Ggneva Chat interface in the web app shows conversation history, suggested follow-up queries, and confidence indicators
 
 ---
 
@@ -478,25 +478,25 @@ Chen copies this into his prep doc. He goes into the call more prepared than any
 *Engineering Leadership Review, live*
 The team is debating whether to expand the data pipeline team. One EM says: "I don't think we've had performance issues with the current setup."
 
-Neva sends a private message to Priya in the meeting sidebar:
+Ggneva sends a private message to Priya in the meeting sidebar:
 
-> [Neva]: The current data pipeline was flagged as a blocker in 3 sprint plannings across Platform and Infra teams in the past 4 weeks — most recently on March 4th. Want me to surface this?
+> [Ggneva]: The current data pipeline was flagged as a blocker in 3 sprint plannings across Platform and Infra teams in the past 4 weeks — most recently on March 4th. Want me to surface this?
 
 Priya clicks "Yes, say it."
 
-Neva's voice (calm, neutral, professional) speaks in the meeting:
+Ggneva's voice (calm, neutral, professional) speaks in the meeting:
 
 > "Can I add something? Pipeline performance was mentioned as a blocker in three sprint plannings across Platform and Infra teams over the past month. I can share the specific meetings if useful."
 
 Silence. Then three people say "wait, really?" The discussion shifts.
 
 **UX notes for Stage 4:**
-- Neva's voice participation requires explicit opt-in per meeting, not just per account
-- Before speaking, Neva always prompts the host privately: "I have something relevant. Want me to say it?" The host clicks yes/no.
-- Neva's voice is clearly identified: it announces "This is Neva—" before speaking, so there is no ambiguity
-- The voice is natural but not uncanny. The UI shows a waveform indicator when Neva is speaking.
-- Neva never interrupts. It waits for a natural pause, or the host explicitly hands it the floor.
-- Post-meeting: Neva's contributions are highlighted in the transcript with a distinct color and "Neva contributed" label
+- Ggneva's voice participation requires explicit opt-in per meeting, not just per account
+- Before speaking, Ggneva always prompts the host privately: "I have something relevant. Want me to say it?" The host clicks yes/no.
+- Ggneva's voice is clearly identified: it announces "This is Ggneva—" before speaking, so there is no ambiguity
+- The voice is natural but not uncanny. The UI shows a waveform indicator when Ggneva is speaking.
+- Ggneva never interrupts. It waits for a natural pause, or the host explicitly hands it the floor.
+- Post-meeting: Ggneva's contributions are highlighted in the transcript with a distinct color and "Ggneva contributed" label
 
 ---
 
@@ -507,10 +507,10 @@ Silence. Then three people say "wait, really?" The discussion shifts.
 
 **User Journey — Chen (CEO, 6 months in):**
 
-Neva has attended 180+ meetings. It knows the company's projects, people, decisions, and patterns better than most employees.
+Ggneva has attended 180+ meetings. It knows the company's projects, people, decisions, and patterns better than most employees.
 
 *Monday, 7:00 AM — before Chen wakes up*
-Neva sends the weekly digest to the leadership team:
+Ggneva sends the weekly digest to the leadership team:
 
 > **Genesis Weekly Digest — March 10**
 > **3 decisions made last week:** (1) API v2 delayed to Q2. (2) Hired contractor for design system. (3) Enterprise tier pricing finalized at $79/user/mo.
@@ -520,19 +520,19 @@ Neva sends the weekly digest to the leadership team:
 
 Chen replies: "Yes, create the onboarding project tracking thread."
 
-Neva creates a Notion page, populates it with all relevant meeting decisions about onboarding, and posts a summary in the #product Slack channel.
+Ggneva creates a Notion page, populates it with all relevant meeting decisions about onboarding, and posts a summary in the #product Slack channel.
 
 *Wednesday — absent team member representation*
-A team member is sick. Their project is up for review. Neva, with their pre-authorization, joins the meeting:
+A team member is sick. Their project is up for review. Ggneva, with their pre-authorization, joins the meeting:
 
 > "Jamie asked me to represent their context in this meeting. The API auth work is 80% complete — the remaining blocker is the security review, which is scheduled for Friday with the infra team."
 
 The meeting proceeds without needing to reschedule.
 
 **UX notes for Stage 5:**
-- Every autonomous action Neva takes is logged in a "Neva Actions" feed, visible to the account admin
+- Every autonomous action Ggneva takes is logged in a "Ggneva Actions" feed, visible to the account admin
 - Users can set a "review window" — autonomous actions are queued for 15-minute review before executing (useful for high-stakes actions)
-- Neva never sends external communications (emails to clients, etc.) without explicit human approval, even at Stage 5
+- Ggneva never sends external communications (emails to clients, etc.) without explicit human approval, even at Stage 5
 - The absent member representation feature requires explicit pre-authorization by the absent team member, not just the meeting host
 
 ---
@@ -541,12 +541,12 @@ The meeting proceeds without needing to reschedule.
 
 ### Screen 1: Dashboard
 
-**Layout:** Left sidebar (navigation) + main content area + right sidebar (Neva activity panel)
+**Layout:** Left sidebar (navigation) + main content area + right sidebar (Ggneva activity panel)
 
 **Left Sidebar:**
-- Neva logo + wordmark (top)
-- Navigation items: Dashboard, Meetings, Knowledge, @Neva, Insights, Settings
-- At bottom: User avatar, current plan badge, "Neva is at Stage 2" growth indicator with a subtle progress ring
+- Ggneva logo + wordmark (top)
+- Navigation items: Dashboard, Meetings, Knowledge, @Ggneva, Insights, Settings
+- At bottom: User avatar, current plan badge, "Ggneva is at Stage 2" growth indicator with a subtle progress ring
 
 **Main Content Area — three-column grid at 1280px+:**
 
@@ -555,7 +555,7 @@ The meeting proceeds without needing to reschedule.
 - Meeting cards, most recent first. Each card:
   - Meeting title + date/time
   - Participant avatars (up to 5, then "+N more")
-  - 1-line summary (Neva-generated)
+  - 1-line summary (Ggneva-generated)
   - Entity pills: # of decisions, # of action items, # of people
   - Amber indicator if contradictions detected
   - "View Brief" CTA
@@ -564,8 +564,8 @@ The meeting proceeds without needing to reschedule.
 *Column 2 — Upcoming Meetings (30% width):*
 - Header: "Next 24 Hours"
 - Calendar-style list of upcoming events
-- Each event: time, title, Neva brief status (green "Brief ready" / amber "Brief building" / gray "No history yet")
-- "Invite Neva" toggle per event (for meetings Neva isn't yet attending)
+- Each event: time, title, Ggneva brief status (green "Brief ready" / amber "Brief building" / gray "No history yet")
+- "Invite Ggneva" toggle per event (for meetings Ggneva isn't yet attending)
 
 *Column 3 — Sidebar (20% width):*
 - Memory Health widget:
@@ -573,10 +573,10 @@ The meeting proceeds without needing to reschedule.
   - Growth sparkline (meetings per week, trending up)
   - "Knowledge graph: 89 entities" with link to Explorer
 - Active Action Items: count badge + top 3 overdue items
-- Neva Growth Stage card: current stage name, what's unlocked, "Promote Neva" CTA (if eligible)
+- Ggneva Growth Stage card: current stage name, what's unlocked, "Promote Ggneva" CTA (if eligible)
 
 **Bottom persistent bar:**
-- @Neva input: "Ask Neva anything..." placeholder, expands on click to full chat overlay
+- @Ggneva input: "Ask Ggneva anything..." placeholder, expands on click to full chat overlay
 
 ---
 
@@ -594,17 +594,17 @@ The meeting proceeds without needing to reschedule.
 **Left Panel — Transcript (60% width):**
 - Speaker-labeled, time-stamped transcript
 - Searchable (Cmd+F triggers transcript search, not browser search)
-- Text is selectable — hover any section to see "Ask Neva about this" or "Add to context" options
-- Neva's name highlighted in teal when referenced
-- Neva contributions (Stage 4+) highlighted with teal left border
+- Text is selectable — hover any section to see "Ask Ggneva about this" or "Add to context" options
+- Ggneva's name highlighted in teal when referenced
+- Ggneva contributions (Stage 4+) highlighted with teal left border
 - Jump-to buttons: "Jump to first decision," "Jump to action items"
 
 **Right Panel — Extracted Content (40% width), tabbed:**
 
 *Tab 1: Summary*
-- Neva-generated summary (3–5 bullets, max)
+- Ggneva-generated summary (3–5 bullets, max)
 - "What changed since last time" section (if prior meeting on same topic exists)
-- Edit button (allows human to correct/annotate Neva's summary)
+- Edit button (allows human to correct/annotate Ggneva's summary)
 
 *Tab 2: Decisions (N)*
 - Each decision: the exact quoted text, speaker, timestamp, confidence score
@@ -612,7 +612,7 @@ The meeting proceeds without needing to reschedule.
 - Flag as "Reversed" or "Still active" status
 
 *Tab 3: Action Items (N)*
-- Each action item: task description, owner, due date (Neva-inferred or human-set)
+- Each action item: task description, owner, due date (Ggneva-inferred or human-set)
 - Status: Open / Complete / Overdue
 - "Add to project tracker" integration buttons (Jira, Linear, Notion)
 
@@ -623,7 +623,7 @@ The meeting proceeds without needing to reschedule.
 - Dates and deadlines mentioned
 
 *Tab 5: Related Meetings*
-- Meetings Neva considers related (by topic, people, project)
+- Meetings Ggneva considers related (by topic, people, project)
 - Relationship type: "Same project," "Same attendees," "Contradicts this decision"
 
 ---
@@ -642,9 +642,9 @@ The meeting proceeds without needing to reschedule.
 **Canvas (main area):**
 
 *Node types:*
-- **People nodes:** Circular, sized by meeting participation frequency. Shows avatar or initials. Color: Neva Slate.
-- **Project nodes:** Rounded rectangle. Shows project name + meeting count. Color: Neva Teal.
-- **Decision nodes:** Diamond shape. Shows decision summary (truncated). Color: Neva Sage for active, amber for flagged/reversed.
+- **People nodes:** Circular, sized by meeting participation frequency. Shows avatar or initials. Color: Ggneva Slate.
+- **Project nodes:** Rounded rectangle. Shows project name + meeting count. Color: Ggneva Teal.
+- **Decision nodes:** Diamond shape. Shows decision summary (truncated). Color: Ggneva Sage for active, amber for flagged/reversed.
 - **Topic clusters:** Soft blob/cloud shape. Shows topic label. Appears when 3+ meetings share a topic.
 
 *Edges:*
@@ -664,24 +664,24 @@ The meeting proceeds without needing to reschedule.
 - First appeared: [date, meeting]
 - Connected to: list of related nodes
 - Recent activity: last 3 mentions in meetings
-- @Neva shortcut: "Ask Neva about [node name]"
+- @Ggneva shortcut: "Ask Ggneva about [node name]"
 
 ---
 
-### Screen 4: @Neva Chat
+### Screen 4: @Ggneva Chat
 
 **Layout:** Centered content (max 720px), clean chat interface. Left sidebar visible but de-emphasized.
 
 **Header:**
-- "@Neva" title
+- "@Ggneva" title
 - Memory context badge: "Drawing from 47 meetings, 6 projects, 89 entities"
 - Clear conversation button
 
 **Chat Area:**
 
-*User message bubbles:* Right-aligned, Neva Slate background, white text
+*User message bubbles:* Right-aligned, Ggneva Slate background, white text
 
-*Neva response cards:* Left-aligned, white background with teal left border. Contains:
+*Ggneva response cards:* Left-aligned, white background with teal left border. Contains:
 - Answer text
 - Source citations: collapsible section labeled "Based on:" listing meeting title, date, speaker, timestamp for each claim. Each is a clickable link that opens the meeting at that exact moment.
 - Confidence indicator: subtle text "High confidence" / "Medium confidence — limited data" / "I'm not sure about this"
@@ -689,9 +689,9 @@ The meeting proceeds without needing to reschedule.
 
 *Example conversation thread (rendered in UI):*
 
-> **Sarah:** @Neva what did we decide about API timeouts?
+> **Sarah:** @Ggneva what did we decide about API timeouts?
 
-> **Neva:** The team landed on 30 seconds in your Sprint Planning on March 3rd. Dev argued for 60s due to third-party latency, but the consensus was to stick with 30s and revisit after load testing.
+> **Ggneva:** The team landed on 30 seconds in your Sprint Planning on March 3rd. Dev argued for 60s due to third-party latency, but the consensus was to stick with 30s and revisit after load testing.
 > *(Sources: Sprint Planning Mar 3, 10:24 — James speaking; Engineering Sync Feb 28, 14:11 — Dev speaking)*
 > **Suggested:** "What was the load testing plan?" / "Has this come up since March 3rd?"
 
@@ -742,10 +742,10 @@ The meeting proceeds without needing to reschedule.
 *Blocker Detection Feed:*
 - List of topics mentioned 3+ times without resolution
 - Format: "[Topic] mentioned in [N] meetings since [date] — no owner assigned"
-- CTA: "Create action item" / "Ask @Neva for detail"
+- CTA: "Create action item" / "Ask @Ggneva for detail"
 
-*Neva's Observations (Stage 2+):*
-- 2–3 Neva-generated observations about team meeting patterns
+*Ggneva's Observations (Stage 2+):*
+- 2–3 Ggneva-generated observations about team meeting patterns
 - Example: "Your team's Monday syncs have gotten 20% longer over the past month. The main addition: status updates that could be async."
 
 ---
@@ -757,7 +757,7 @@ The meeting proceeds without needing to reschedule.
 **Settings Sub-Nav:**
 - Integrations
 - Meeting Privacy
-- Neva's Growth Stage
+- Ggneva's Growth Stage
 - Notifications
 - Personal Data
 
@@ -766,11 +766,11 @@ The meeting proceeds without needing to reschedule.
 *Calendar Integration:*
 - Google Calendar: Connected (green badge) + "Manage" link
 - Outlook Calendar: Connect button
-- Settings: "Which calendars should Neva attend?" — checkboxes for each connected calendar
-- Default: "Invite Neva to all meetings" toggle (off by default)
+- Settings: "Which calendars should Ggneva attend?" — checkboxes for each connected calendar
+- Default: "Invite Ggneva to all meetings" toggle (off by default)
 
 *Communication Integrations:*
-- Slack: Connect → OAuth flow → channel selector ("Where should Neva post summaries?")
+- Slack: Connect → OAuth flow → channel selector ("Where should Ggneva post summaries?")
 - Microsoft Teams: Connect
 - Email: "Send summaries to [user@company.com]" toggle
 
@@ -795,12 +795,12 @@ The meeting proceeds without needing to reschedule.
 - Per-meeting privacy can always be set from Meeting Detail
 - Admin can set org-wide minimum privacy (floor, not ceiling)
 
-**Neva's Growth Stage Page — most important settings page:**
+**Ggneva's Growth Stage Page — most important settings page:**
 
 *Stage progression visualization:*
 - Horizontal stepper: Stage 1 → 2 → 3 → 4 → 5
-- Current stage highlighted in Neva Teal
-- Each stage: name, brief description, "what Neva can do" bullet list
+- Current stage highlighted in Ggneva Teal
+- Each stage: name, brief description, "what Ggneva can do" bullet list
 - Active stage has "Currently active" badge
 
 *Promotion controls:*
@@ -809,9 +809,9 @@ The meeting proceeds without needing to reschedule.
 - Manual demotion always available: "Return to Stage N" (no requirements)
 
 *Stage 4 and 5 specific controls (shown only if active):*
-- "Neva can speak in meetings" toggle (per stage 4)
-- "Neva needs approval before speaking" (default on, can be turned off)
-- "Neva can act autonomously on action items" toggle (stage 5, off by default)
+- "Ggneva can speak in meetings" toggle (per stage 4)
+- "Ggneva needs approval before speaking" (default on, can be turned off)
+- "Ggneva can act autonomously on action items" toggle (stage 5, off by default)
 
 ---
 
@@ -829,21 +829,21 @@ The meeting proceeds without needing to reschedule.
 
 **Org Settings:**
 - Org name, logo upload
-- Default Neva Growth Stage for new users (admins can cap this org-wide)
-- "Allow users to promote Neva beyond Stage 3" toggle (Stage 4/5 require admin unlock)
-- Meeting ingestion scope: "Neva attends meetings company-wide" / "Neva attends only when explicitly invited"
+- Default Ggneva Growth Stage for new users (admins can cap this org-wide)
+- "Allow users to promote Ggneva beyond Stage 3" toggle (Stage 4/5 require admin unlock)
+- Meeting ingestion scope: "Ggneva attends meetings company-wide" / "Ggneva attends only when explicitly invited"
 
 **User Management:**
-- Table: Name, email, role, Neva Stage, meetings ingested, last active
-- Bulk actions: invite, deactivate, change role, reset Neva stage
+- Table: Name, email, role, Ggneva Stage, meetings ingested, last active
+- Bulk actions: invite, deactivate, change role, reset Ggneva stage
 - Per-user overrides: block specific users from accessing cross-team insights
 
 **Data Retention:**
 - Transcript retention: 30 / 60 / 90 / 180 / 365 days / Forever
 - Meeting summary retention: separate control
 - Knowledge graph retention: separate control
-- "Right to be forgotten" workflow: search for user → purge all their meeting data from Neva's memory
-- Data residency: selector (US / EU / APAC) — shown with current value, change requires Neva support ticket
+- "Right to be forgotten" workflow: search for user → purge all their meeting data from Ggneva's memory
+- Data residency: selector (US / EU / APAC) — shown with current value, change requires Ggneva support ticket
 
 **Compliance Export:**
 - Export all data for user: generates ZIP with transcripts, summaries, entities, action items
@@ -859,22 +859,22 @@ The meeting proceeds without needing to reschedule.
 
 **Usage Analytics:**
 - Meetings ingested this month (org total)
-- @Neva queries this month
-- Active users (attended ≥ 1 meeting with Neva this month)
+- @Ggneva queries this month
+- Active users (attended ≥ 1 meeting with Ggneva this month)
 - Most-queried topics
 - Growth stage distribution (how many users at each stage)
 
 ---
 
-## 7. @Neva Interaction Library
+## 7. @Ggneva Interaction Library
 
-The following are canonical examples of @Neva interactions, categorized by use case. These should guide NLP/intent design and response templates.
+The following are canonical examples of @Ggneva interactions, categorized by use case. These should guide NLP/intent design and response templates.
 
 ### 7.1 Decision Retrieval
 
-**Query:** `@Neva what did we decide about pricing?`
+**Query:** `@Ggneva what did we decide about pricing?`
 
-> **Neva:** Pricing has come up in 4 meetings since February. Here's the arc:
+> **Ggneva:** Pricing has come up in 4 meetings since February. Here's the arc:
 > - **Feb 3:** Initial pricing at $29/user/mo proposed by Marcus (stakeholder review)
 > - **Feb 17:** Sales team pushed back — James argued $29 was too low for enterprise. Decision to split tiers deferred.
 > - **Mar 1:** Tiers finalized: Pro at $29/mo flat, Team at $49/user/mo, Enterprise at $79+/user/mo
@@ -885,9 +885,9 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ---
 
-**Query:** `@Neva has the API timeout decision changed since last month?`
+**Query:** `@Ggneva has the API timeout decision changed since last month?`
 
-> **Neva:** Yes — there's been a shift. On Feb 28, the team agreed on 30 seconds. On March 10, Dev raised this again in the engineering sync and proposed 60 seconds due to new third-party latency data. No final decision was made on March 10 — it was flagged for follow-up.
+> **Ggneva:** Yes — there's been a shift. On Feb 28, the team agreed on 30 seconds. On March 10, Dev raised this again in the engineering sync and proposed 60 seconds due to new third-party latency data. No final decision was made on March 10 — it was flagged for follow-up.
 > The March 10 discussion contradicts the Feb 28 decision. You may want to resolve this explicitly.
 > *(View both meetings →)*
 
@@ -895,9 +895,9 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ### 7.2 Project & Context Briefs
 
-**Query:** `@Neva brief me on Project Atlas`
+**Query:** `@Ggneva brief me on Project Atlas`
 
-> **Neva:** **Project Atlas — Context Brief**
+> **Ggneva:** **Project Atlas — Context Brief**
 >
 > **What it is:** The enterprise data pipeline overhaul, targeting Q2 delivery.
 > **Team:** Owned by Jordan (Infra lead), with Priya as exec sponsor. Dev, Sam, and two contractors are contributing.
@@ -910,9 +910,9 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ---
 
-**Query:** `@Neva what's the history of the checkout redesign?`
+**Query:** `@Ggneva what's the history of the checkout redesign?`
 
-> **Neva:** The checkout redesign has been discussed in 6 meetings since January.
+> **Ggneva:** The checkout redesign has been discussed in 6 meetings since January.
 >
 > - **Jan 15:** Redesign proposed by design team. Scope: full UX overhaul, new payment flow.
 > - **Feb 3:** Engineering scoped it at 6 weeks. Product agreed.
@@ -925,9 +925,9 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ### 7.3 Ownership & Accountability
 
-**Query:** `@Neva who owns the API redesign?`
+**Query:** `@Ggneva who owns the API redesign?`
 
-> **Neva:** Ownership has been a bit unclear. Here's what I've tracked:
+> **Ggneva:** Ownership has been a bit unclear. Here's what I've tracked:
 > - **Feb 10:** Jordan volunteered to "lead" the API redesign in the eng sync.
 > - **Feb 24:** Marcus said he'd "drive the requirements" — this is a different scope (PM-side).
 > - **Mar 3:** Sprint planning assigned the first ticket to Dev, but no overall owner named.
@@ -937,18 +937,18 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ---
 
-**Query:** `@Neva who was supposed to follow up with the payment team?`
+**Query:** `@Ggneva who was supposed to follow up with the payment team?`
 
-> **Neva:** In your Product Review on March 5th, Sarah said she'd follow up with the payment team about API documentation "by end of week." That was 5 days ago — I don't see any subsequent meeting where this was resolved or updated.
+> **Ggneva:** In your Product Review on March 5th, Sarah said she'd follow up with the payment team about API documentation "by end of week." That was 5 days ago — I don't see any subsequent meeting where this was resolved or updated.
 > Want me to send Sarah a reminder, or add this to the open blockers list?
 
 ---
 
 ### 7.4 Contradiction & Pattern Detection
 
-**Query:** `@Neva any contradictions in recent planning?`
+**Query:** `@Ggneva any contradictions in recent planning?`
 
-> **Neva:** I've flagged 2 potential contradictions in the past 2 weeks:
+> **Ggneva:** I've flagged 2 potential contradictions in the past 2 weeks:
 >
 > **1. API timeout (High confidence):** Feb 28 decision was 30 seconds. March 10 discussion reopened this toward 60 seconds without a final decision. Needs resolution.
 >
@@ -958,18 +958,18 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ---
 
-**Query:** `@Neva are we aligned on the Q2 roadmap?`
+**Query:** `@Ggneva are we aligned on the Q2 roadmap?`
 
-> **Neva:** Mostly, with one notable gap. The roadmap discussed in Product Review (March 5) and the engineering backlog discussed in Sprint Planning (March 10) are largely consistent — except for the checkout redesign (see previous note) and the data export feature, which Product listed as Q2 but Engineering hasn't scoped or discussed yet.
+> **Ggneva:** Mostly, with one notable gap. The roadmap discussed in Product Review (March 5) and the engineering backlog discussed in Sprint Planning (March 10) are largely consistent — except for the checkout redesign (see previous note) and the data export feature, which Product listed as Q2 but Engineering hasn't scoped or discussed yet.
 > *(3 meetings compared →)*
 
 ---
 
 ### 7.5 Relationship & Stakeholder Memory
 
-**Query:** `@Neva brief me on TechCorp ahead of my 2pm call`
+**Query:** `@Ggneva brief me on TechCorp ahead of my 2pm call`
 
-> **Neva:** **TechCorp — Stakeholder Brief**
+> **Ggneva:** **TechCorp — Stakeholder Brief**
 >
 > **Relationship:** 3 conversations since November. Primary contact: Ryan Sullivan (VP Engineering).
 > **Their priorities (stated):** GDPR compliance, API stability, cost predictability.
@@ -981,17 +981,17 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ---
 
-**Query:** `@Neva what do I know about David Park at Meridian Capital?`
+**Query:** `@Ggneva what do I know about David Park at Meridian Capital?`
 
-> **Neva:** David Park is mentioned in 3 meetings. He's the CTO at Meridian Capital. In your February 28 demo call, he raised on-prem deployment and SOC2 as non-negotiables. He was technically engaged — asked detailed questions about your data architecture. He deferred final buying decision to Rachel Kim (VP Ops). No follow-up from your team on the on-prem question yet.
+> **Ggneva:** David Park is mentioned in 3 meetings. He's the CTO at Meridian Capital. In your February 28 demo call, he raised on-prem deployment and SOC2 as non-negotiables. He was technically engaged — asked detailed questions about your data architecture. He deferred final buying decision to Rachel Kim (VP Ops). No follow-up from your team on the on-prem question yet.
 
 ---
 
 ### 7.6 Meeting Preparation
 
-**Query:** `@Neva what should I know before the board meeting tomorrow?`
+**Query:** `@Ggneva what should I know before the board meeting tomorrow?`
 
-> **Neva:** Based on the agenda and recent meetings, here's what's likely to come up:
+> **Ggneva:** Based on the agenda and recent meetings, here's what's likely to come up:
 >
 > **Metrics:** Q1 ARR was last discussed in the Feb 28 leadership sync. Chen projected $480K ARR by March 31 — you're at $431K as of last week's check-in.
 > **Hiring:** Three open reqs (Senior Engineer, Designer, AE) were flagged as "behind plan" in the March 5 sync.
@@ -1003,9 +1003,9 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ### 7.7 Action Items & Follow-Ups
 
-**Query:** `@Neva what action items are open from last week?`
+**Query:** `@Ggneva what action items are open from last week?`
 
-> **Neva:** 7 action items from last week's meetings are still open:
+> **Ggneva:** 7 action items from last week's meetings are still open:
 >
 > 1. Dev — API rate limit documentation for TechCorp (due March 7, overdue)
 > 2. Jordan — Contractor onboarding doc for Project Atlas (due March 10, today)
@@ -1019,18 +1019,18 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ---
 
-**Query:** `@Neva remind the team about the security review on Friday`
+**Query:** `@Ggneva remind the team about the security review on Friday`
 
-> **Neva:** Done. I'll send a reminder to Jordan, Dev, and Sam (the attendees from the March 7 meeting where this was scheduled) on Thursday at 4 PM with the context from that meeting.
+> **Ggneva:** Done. I'll send a reminder to Jordan, Dev, and Sam (the attendees from the March 7 meeting where this was scheduled) on Thursday at 4 PM with the context from that meeting.
 > Should I include anyone else?
 
 ---
 
 ### 7.8 Cultural & Behavioral Queries
 
-**Query:** `@Neva how are our meetings going?`
+**Query:** `@Ggneva how are our meetings going?`
 
-> **Neva:** Here's a snapshot of the past month:
+> **Ggneva:** Here's a snapshot of the past month:
 >
 > - **Volume:** 43 team meetings, 4.2 hours/person average per week
 > - **Participation:** Monday syncs have the most balanced participation. Friday retrospectives tend to be dominated by 2–3 voices.
@@ -1045,9 +1045,9 @@ The following are canonical examples of @Neva interactions, categorized by use c
 
 ### 8.1 Onboarding Philosophy
 
-Neva's onboarding is designed around a single insight: **the fastest path to "aha" is the first useful summary**. Every step of onboarding is optimized to get users to their first post-meeting summary within one meeting day.
+Ggneva's onboarding is designed around a single insight: **the fastest path to "aha" is the first useful summary**. Every step of onboarding is optimized to get users to their first post-meeting summary within one meeting day.
 
-The onboarding does not demo Neva. It deploys Neva. Users don't watch a tour — they invite Neva to a real meeting and see what happens.
+The onboarding does not demo Ggneva. It deploys Ggneva. Users don't watch a tour — they invite Ggneva to a real meeting and see what happens.
 
 ### 8.2 Onboarding Steps
 
@@ -1061,27 +1061,27 @@ The onboarding does not demo Neva. It deploys Neva. Users don't watch a tour —
 
 **Step 2: Connect Calendar (90 sec)**
 
-- Clear value prop: "Neva needs your calendar to know when to show up."
+- Clear value prop: "Ggneva needs your calendar to know when to show up."
 - Google Calendar or Outlook OAuth
 - Immediately shows a preview: "I can see you have 4 meetings today. Want me to join any of them?"
-- Calendar events are listed — user toggles which ones Neva should attend
-- Default: Neva is NOT automatically invited. User explicitly chooses first meeting.
+- Calendar events are listed — user toggles which ones Ggneva should attend
+- Default: Ggneva is NOT automatically invited. User explicitly chooses first meeting.
 
 ---
 
 **Step 3: First Meeting Invite (30 sec)**
 
 - User selects their next meaningful meeting from the list
-- Neva is added as a participant
-- Confirmation screen: "Neva will join as a silent observer. You'll receive a summary within 5 minutes of the meeting ending."
-- Option: "Also invite Neva to all future meetings" (off by default)
+- Ggneva is added as a participant
+- Confirmation screen: "Ggneva will join as a silent observer. You'll receive a summary within 5 minutes of the meeting ending."
+- Option: "Also invite Ggneva to all future meetings" (off by default)
 
 ---
 
 **Step 4: The Wait (0 effort)**
 
-- Neva joins the meeting. The user does nothing.
-- A small browser notification appears when the meeting ends: "Neva is building your summary..."
+- Ggneva joins the meeting. The user does nothing.
+- A small browser notification appears when the meeting ends: "Ggneva is building your summary..."
 
 ---
 
@@ -1089,26 +1089,26 @@ The onboarding does not demo Neva. It deploys Neva. Users don't watch a tour —
 
 - 3–5 minutes after meeting ends: notification and/or email
 - Summary is formatted exactly as described in Meeting Detail (decisions, action items, "I noticed...")
-- If there was any cross-meeting context available (even from a single prior meeting), Neva surfaces it
+- If there was any cross-meeting context available (even from a single prior meeting), Ggneva surfaces it
 - Bottom of summary: "How did I do?" → thumbs up/down + optional text feedback
-- CTA: "Invite Neva to your next meeting" — one click, no friction
+- CTA: "Invite Ggneva to your next meeting" — one click, no friction
 
 ---
 
 **Step 6: Slack Integration (optional, shown after first summary)**
 
-- "Want to ask Neva questions in Slack?" → OAuth flow
+- "Want to ask Ggneva questions in Slack?" → OAuth flow
 - Takes 60 seconds
-- Immediately shows the @Neva command syntax in their preferred Slack channel
-- First suggested query: "Ask Neva to brief you on your last meeting"
+- Immediately shows the @Ggneva command syntax in their preferred Slack channel
+- First suggested query: "Ask Ggneva to brief you on your last meeting"
 
 ---
 
 **Step 7: Invite Your Team (viral loop)**
 
-- After 3 meetings: "Neva works better with your whole team"
+- After 3 meetings: "Ggneva works better with your whole team"
 - Inline invite: paste emails or connect to Google Directory for bulk invite
-- Framing: "When everyone's meetings are in Neva, you can ask things like '@Neva brief me on what the engineering team discussed this week'"
+- Framing: "When everyone's meetings are in Ggneva, you can ask things like '@Ggneva brief me on what the engineering team discussed this week'"
 - Incentive: "Team plan features unlock when 3+ team members are active" (for Pro users upgrading to Team)
 
 ---
@@ -1119,7 +1119,7 @@ Enterprise admins have a parallel onboarding track:
 
 1. **Admin setup:** SSO configuration, data retention policy, org-wide privacy defaults
 2. **Pilot group:** Admin selects 5–10 pilot users to start (not full org rollout)
-3. **Pilot review (2 weeks):** Admin dashboard shows pilot engagement, summary quality, @Neva usage
+3. **Pilot review (2 weeks):** Admin dashboard shows pilot engagement, summary quality, @Ggneva usage
 4. **Rollout:** Admin bulk-invites remaining users, sets org defaults
 5. **Compliance review:** 30-day check-in with Customer Success team
 
@@ -1132,7 +1132,7 @@ Enterprise admins have a parallel onboarding track:
 | Tier | Price | Target | Key Features |
 |------|-------|--------|--------------|
 | **Free** | $0/mo | Individual trial, viral referral | 5 meetings/mo, basic summaries, 30-day memory |
-| **Pro** | $29/mo flat | Individual power users, small teams | Unlimited meetings, full memory, @Neva chat, all integrations |
+| **Pro** | $29/mo flat | Individual power users, small teams | Unlimited meetings, full memory, @Ggneva chat, all integrations |
 | **Team** | $49/user/mo | Teams of 5–50 | Org memory, team insights, cross-team knowledge graph, Slack integration, shared action item tracking |
 | **Enterprise** | $79+/user/mo | Companies 50+ | Voice participation (Stage 4), autonomous PM (Stage 5), on-prem option, SSO/SAML, compliance export, dedicated CSM, SLA |
 
@@ -1142,10 +1142,10 @@ Enterprise admins have a parallel onboarding track:
 Generous enough to demonstrate real value (5 meetings surfaces a useful knowledge graph), restrictive enough to drive upgrade. The 5-meeting limit is hit in week 1 for most knowledge workers. Free users are the most important viral vector — they share summaries, which drives colleague signups.
 
 **Pro at $29/mo flat:**
-Deliberately individual pricing, not per-seat. This makes the decision to upgrade unilateral — one person can buy Pro without IT approval or procurement. The goal is to get Neva inside organizations via bottom-up adoption before a top-down Team or Enterprise deal. $29/mo is below the threshold most knowledge workers can expense without approval.
+Deliberately individual pricing, not per-seat. This makes the decision to upgrade unilateral — one person can buy Pro without IT approval or procurement. The goal is to get Ggneva inside organizations via bottom-up adoption before a top-down Team or Enterprise deal. $29/mo is below the threshold most knowledge workers can expense without approval.
 
 **Team at $49/user/mo:**
-This is the primary revenue tier. The jump from $29 flat to $49/user is justified by the multiplicative value of org memory — when 5 people's meetings are in Neva, the knowledge graph is worth far more than 5× the individual. Minimum effective team size: 3 users ($147/mo). Natural expansion motion: as more team members join, value increases non-linearly.
+This is the primary revenue tier. The jump from $29 flat to $49/user is justified by the multiplicative value of org memory — when 5 people's meetings are in Ggneva, the knowledge graph is worth far more than 5× the individual. Minimum effective team size: 3 users ($147/mo). Natural expansion motion: as more team members join, value increases non-linearly.
 
 **Enterprise at $79+/user/mo:**
 The "+" matters — enterprise deals are customized. Base is $79/user/mo; on-prem, custom data residency, SLA tiers, and dedicated training push ARR higher. Voice participation (Stage 4) and Autonomous PM (Stage 5) are enterprise-only not just for revenue reasons — they require organizational trust that's built through the lower tiers. Enterprises need procurement, legal review, and security audits anyway; the higher price funds that GTM motion.
@@ -1154,14 +1154,14 @@ The "+" matters — enterprise deals are customized. Base is $79/user/mo; on-pre
 
 | Tier | Primary Upgrade Trigger |
 |------|------------------------|
-| Free → Pro | 5-meeting limit hit; or @Neva question attempted (feature-gated) |
+| Free → Pro | 5-meeting limit hit; or @Ggneva question attempted (feature-gated) |
 | Pro → Team | User invites a colleague; or tries to access "what did my team discuss?" |
 | Team → Enterprise | 50+ seats; or request for voice participation / on-prem / SSO |
 
 ### 9.4 Packaging Decisions
 
 **What's NOT on Free:**
-- @Neva queries (the "aha" moment for memory retrieval — drives upgrade more than any other feature)
+- @Ggneva queries (the "aha" moment for memory retrieval — drives upgrade more than any other feature)
 - Pre-meeting briefs (saves the most time — users feel the absence acutely)
 - Slack integration (the collaboration hook — single best driver of team upgrades)
 
@@ -1177,39 +1177,39 @@ The "+" matters — enterprise deals are customized. Base is $79/user/mo; on-pre
 
 ### 10.1 Loop 1: The Summary Share Loop
 
-**Mechanism:** After every meeting, Neva generates a summary. The meeting host (or Neva automatically, with permission) shares the summary with attendees who aren't Neva users. Non-users receive a formatted email with the summary, credited to Neva.
+**Mechanism:** After every meeting, Ggneva generates a summary. The meeting host (or Ggneva automatically, with permission) shares the summary with attendees who aren't Ggneva users. Non-users receive a formatted email with the summary, credited to Ggneva.
 
 **Trigger:** Attendee receives a clean, useful summary they didn't have to write.
 
-**Conversion moment:** The email includes: "This summary was generated by Neva. [Name] uses Neva to capture and remember every meeting. Want to try it?" → direct signup link.
+**Conversion moment:** The email includes: "This summary was generated by Ggneva. [Name] uses Ggneva to capture and remember every meeting. Want to try it?" → direct signup link.
 
-**Why it works:** The summary demonstrates Neva's value in a completely passive way. The non-user is already impressed before they've seen the product. Conversion to sign-up is high because the use case is self-evident.
+**Why it works:** The summary demonstrates Ggneva's value in a completely passive way. The non-user is already impressed before they've seen the product. Conversion to sign-up is high because the use case is self-evident.
 
-**Acceleration:** At Team tier, Neva can auto-share summaries with all meeting attendees. This is the primary mechanism for org-wide spread.
+**Acceleration:** At Team tier, Ggneva can auto-share summaries with all meeting attendees. This is the primary mechanism for org-wide spread.
 
 ---
 
-### 10.2 Loop 2: The @Neva Moment Loop
+### 10.2 Loop 2: The @Ggneva Moment Loop
 
-**Mechanism:** A Neva user asks @Neva a question in a shared Slack channel. Neva responds with a sourced, useful answer — visible to the whole channel.
+**Mechanism:** A Ggneva user asks @Ggneva a question in a shared Slack channel. Ggneva responds with a sourced, useful answer — visible to the whole channel.
 
 **Trigger:** Non-users watch a colleague get an instant, accurate answer to a question that would have taken 20 minutes to dig up manually.
 
-**Conversion moment:** Someone in the channel messages the Neva user privately: "How did it know that?" → referral conversation → signup.
+**Conversion moment:** Someone in the channel messages the Ggneva user privately: "How did it know that?" → referral conversation → signup.
 
 **Why it works:** The answer is the demo. Unlike a product demo which requires scheduling and attention, this happens organically in the flow of work. It's social proof in real time.
 
-**Design support:** @Neva responses in Slack include a subtle footer: "Neva knows your team's meeting history. [Learn more →]" — not aggressive, but present.
+**Design support:** @Ggneva responses in Slack include a subtle footer: "Ggneva knows your team's meeting history. [Learn more →]" — not aggressive, but present.
 
 ---
 
 ### 10.3 Loop 3: The Pre-Meeting Brief Loop
 
-**Mechanism:** A Neva user receives a pre-meeting brief before an important call. They walk in more prepared than everyone else. When they reference something from the brief in the meeting, others ask: "How did you know that?"
+**Mechanism:** A Ggneva user receives a pre-meeting brief before an important call. They walk in more prepared than everyone else. When they reference something from the brief in the meeting, others ask: "How did you know that?"
 
-**Trigger:** The visible preparedness of a Neva user in a meeting.
+**Trigger:** The visible preparedness of a Ggneva user in a meeting.
 
-**Conversion moment:** Post-meeting, the colleague asks about the tool. The Neva user forwards the brief email — which has a "Get your own brief →" CTA at the bottom.
+**Conversion moment:** Post-meeting, the colleague asks about the tool. The Ggneva user forwards the brief email — which has a "Get your own brief →" CTA at the bottom.
 
 **Why it works:** Preparedness is universally valued in professional settings. Being visibly prepared in a meeting is a status signal. Colleagues want access to whatever is producing that.
 
@@ -1225,17 +1225,17 @@ The "+" matters — enterprise deals are customized. Base is $79/user/mo; on-pre
 
 **Conversion moment:** The manager's manager sees the report and asks "what generated this?" → org-wide Team or Enterprise purchase conversation.
 
-**Why it works:** Meeting culture data is something leaders want but rarely have. A Neva Team Insights report creates a virtuous cycle: the manager is seen as data-driven and proactive; the org realizes they want this capability everywhere.
+**Why it works:** Meeting culture data is something leaders want but rarely have. A Ggneva Team Insights report creates a virtuous cycle: the manager is seen as data-driven and proactive; the org realizes they want this capability everywhere.
 
-**Design support:** Team Insights reports are exportable as PDFs with Neva branding. The export CTA is prominent: "Share this report." The PDF includes the Neva wordmark and a subtle footer: "neva.ai — the team member that remembers everything."
+**Design support:** Team Insights reports are exportable as PDFs with Ggneva branding. The export CTA is prominent: "Share this report." The PDF includes the Ggneva wordmark and a subtle footer: "gneva.ai — the team member that remembers everything."
 
 ---
 
 ### 10.5 Retention Mechanics
 
-**Memory lock-in:** The longer Neva is used, the more valuable its memory becomes. Switching away means losing a knowledge graph built from months of meetings. This is not artificial lock-in — it's the product's core value compounding over time.
+**Memory lock-in:** The longer Ggneva is used, the more valuable its memory becomes. Switching away means losing a knowledge graph built from months of meetings. This is not artificial lock-in — it's the product's core value compounding over time.
 
-**Stage progression:** Moving from Stage 1 → 2 → 3 is a meaningful, felt upgrade. Users who reach Stage 3 (async team member) have substantially higher retention because @Neva is now woven into their daily workflow.
+**Stage progression:** Moving from Stage 1 → 2 → 3 is a meaningful, felt upgrade. Users who reach Stage 3 (async team member) have substantially higher retention because @Ggneva is now woven into their daily workflow.
 
 **Habit formation:** Pre-meeting briefs and post-meeting summaries are designed to become habitual. Users who use pre-meeting briefs 5+ times have dramatically higher 90-day retention than users who only use summaries.
 
@@ -1247,9 +1247,9 @@ The "+" matters — enterprise deals are customized. Base is $79/user/mo; on-pre
 
 - All color choices meet WCAG 2.1 AA contrast standards for text
 - Graph views (Knowledge Explorer) include a list/table alternative for users who cannot interpret visual graphs
-- @Neva chat is keyboard-navigable; voice input supported via browser native API
+- @Ggneva chat is keyboard-navigable; voice input supported via browser native API
 - Meeting transcripts support text resizing to 200% without horizontal scroll
-- Neva's voice participation (Stage 4) includes a visual transcript of what Neva says in real time for hearing-impaired attendees
+- Ggneva's voice participation (Stage 4) includes a visual transcript of what Ggneva says in real time for hearing-impaired attendees
 - Dark mode supported from launch; honors system preference by default
 
 ---
@@ -1259,15 +1259,15 @@ The "+" matters — enterprise deals are customized. Base is $79/user/mo; on-pre
 | Metric | Definition | Target |
 |--------|-----------|--------|
 | Time to first summary | Sign-up to first delivered summary | < 24 hours |
-| Time to "aha" | First @Neva query that returns a useful answer | < 7 days |
+| Time to "aha" | First @Ggneva query that returns a useful answer | < 7 days |
 | Meeting ingestion rate | Meetings/week per active user | > 5 |
 | Stage 2 conversion rate | % of users who promote to Stage 2 | > 60% within 30 days |
-| @Neva MAU | % of users who use @Neva at least once/month | > 40% |
+| @Ggneva MAU | % of users who use @Ggneva at least once/month | > 40% |
 | Team expansion ratio | Avg team members added per initial user | > 2.5 within 90 days |
 | 90-day retention | % of paid users active at day 90 | > 70% |
 | NPS | Quarterly survey | > 50 |
 
 ---
 
-*Document version 1.0 — Neva Product Design & UX*
+*Document version 1.0 — Ggneva Product Design & UX*
 *For internal use — not for distribution*

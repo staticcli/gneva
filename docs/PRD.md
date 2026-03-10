@@ -1,4 +1,4 @@
-# Neva — Product Requirements Document
+# Ggneva — Product Requirements Document
 
 **Version:** 1.0
 **Date:** 2026-03-10
@@ -9,9 +9,9 @@
 
 ## Executive Summary
 
-Neva is an AI team member that joins meetings, builds organizational memory, and evolves from a silent observer into an active participant and autonomous PM. Unlike existing meeting tools that treat each meeting as an isolated event, Neva builds a persistent knowledge graph connecting people, projects, decisions, and action items across every conversation over time.
+Ggneva is an AI team member that joins meetings, builds organizational memory, and evolves from a silent observer into an active participant and autonomous PM. Unlike existing meeting tools that treat each meeting as an isolated event, Ggneva builds a persistent knowledge graph connecting people, projects, decisions, and action items across every conversation over time.
 
-The name "Neva" means "to grow/nurture" in Maori and "treasure" in Japanese — reflecting both the product's growth-stage architecture and its role as guardian of organizational knowledge.
+The name "Ggneva" means "to grow/nurture" in Maori and "treasure" in Japanese — reflecting both the product's growth-stage architecture and its role as guardian of organizational knowledge.
 
 ---
 
@@ -41,13 +41,13 @@ The name "Neva" means "to grow/nurture" in Maori and "treasure" in Japanese — 
 
 ## The Solution
 
-Neva is not a tool — it's a team member that learns. It grows through 5 stages:
+Ggneva is not a tool — it's a team member that learns. It grows through 5 stages:
 
 | Stage | Persona | Capability |
 |-------|---------|------------|
 | 1. Silent Observer | "I noticed" | Joins meetings, transcribes, builds memory silently |
 | 2. Post-Meeting Analyst | "Here's what happened" | Summaries, action items, pre-meeting briefs, pattern detection |
-| 3. Async Team Member | "Let me help" | @Neva in Slack/Teams, answers from organizational memory |
+| 3. Async Team Member | "Let me help" | @Ggneva in Slack/Teams, answers from organizational memory |
 | 4. Active Participant | "Can I add something?" | Voice in meetings, surfaces context, flags contradictions |
 | 5. Autonomous PM | "I'll handle it" | Proactive management, represents absent members, owns follow-ups |
 
@@ -76,13 +76,13 @@ Each stage builds trust before unlocking the next. Users control the pace.
                     | Read.ai                        |
                     |                                |
    ORG-WIDE -------+--------------------------------+------
-                    | Gong, Chorus (sales only)      | ** NEVA **
+                    | Gong, Chorus (sales only)      | ** GNEVA **
                     | Microsoft Copilot, Gemini      |
                     | (platform-locked)              |
                     |                                |
 ```
 
-Neva occupies the only empty quadrant: **Organization-wide + Active participation.**
+Ggneva occupies the only empty quadrant: **Organization-wide + Active participation.**
 
 ---
 
@@ -101,7 +101,7 @@ Neva occupies the only empty quadrant: **Organization-wide + Active participatio
 | Tier | Price | Target | Includes |
 |------|-------|--------|----------|
 | **Free** | $0 | Individual try | 5 meetings/month, basic summaries |
-| **Pro** | $29/mo | Power user | Unlimited meetings, full memory, @Neva chat |
+| **Pro** | $29/mo | Power user | Unlimited meetings, full memory, @Ggneva chat |
 | **Team** | $49/user/mo | Teams 5-50 | Org memory, team insights, Slack integration |
 | **Enterprise** | $79+/user/mo | Org 50+ | Voice participation, on-prem, SSO/SAML |
 
@@ -118,7 +118,7 @@ This PRD is structured across 5 companion documents:
 | [Competitive Analysis](competitive-analysis.md) | Market landscape, 30+ competitors, 6 strategic gaps |
 | [Technical Architecture](technical-architecture.md) | System design, database schema, API, deployment |
 | [Security Architecture](security-architecture.md) | Encryption, auth, compliance, threat model, on-prem |
-| [Product Design & UX](product-design.md) | Personas, user journeys, screens, @Neva interactions |
+| [Product Design & UX](product-design.md) | Personas, user journeys, screens, @Ggneva interactions |
 | [GTM & Business Strategy](gtm-strategy.md) | Market sizing, pricing, financials, roadmap |
 
 ---
@@ -135,7 +135,7 @@ This PRD is structured across 5 companion documents:
 - Entity extraction: people, decisions, action items, topics
 - Knowledge graph storage (PostgreSQL + pgvector)
 - Web dashboard: meeting feed, search, knowledge explorer
-- Basic @Neva query interface
+- Basic @Ggneva query interface
 - User authentication (email + password, Google OAuth)
 
 **Out of scope for MVP:**
