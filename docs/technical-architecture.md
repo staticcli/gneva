@@ -1,4 +1,4 @@
-# Ggneva: Technical Architecture Document
+# Gneva: Technical Architecture Document
 
 **Version:** 0.1 — Initial Draft
 **Date:** 2026-03-10
@@ -25,7 +25,7 @@
 
 ## 1. Product Overview
 
-Ggneva is an AI team member that joins meetings, accumulates organizational memory, and progressively evolves from a silent observer into an active voice participant and autonomous project manager. Unlike meeting recording tools, Ggneva builds a living knowledge graph of an organization's decisions, commitments, and relationships — and uses that graph to reason, advise, and eventually act.
+Gneva is an AI team member that joins meetings, accumulates organizational memory, and progressively evolves from a silent observer into an active voice participant and autonomous project manager. Unlike meeting recording tools, Gneva builds a living knowledge graph of an organization's decisions, commitments, and relationships — and uses that graph to reason, advise, and eventually act.
 
 ### Growth Stages
 
@@ -165,7 +165,7 @@ Ggneva is an AI team member that joins meetings, accumulates organizational memo
 |-----------|--------|-----------|
 | Embeddings | nomic-embed-text-v1.5 | 384-dim (vs 1536 for OpenAI); 3x cheaper storage; competitive retrieval quality; runs locally on CPU, avoiding API costs for high-volume embedding |
 | Extraction & Reasoning | Claude API (Haiku / Sonnet) | Haiku for entity extraction (cheap, fast); Sonnet for complex reasoning, contradiction detection, meeting summaries; structured JSON output via tool use |
-| Voice synthesis | ElevenLabs | Best-in-class voice quality; voice cloning for consistent Ggneva identity; supports streaming for low-latency meeting participation (Stage 4+) |
+| Voice synthesis | ElevenLabs | Best-in-class voice quality; voice cloning for consistent Gneva identity; supports streaming for low-latency meeting participation (Stage 4+) |
 
 ### Rationale: Single DB vs. Separate Vector DB
 
@@ -360,7 +360,7 @@ CREATE TABLE contradictions (
     resolved_at     TIMESTAMPTZ
 );
 
--- Ggneva's message log (for Slack/Teams and meeting voice)
+-- Gneva's message log (for Slack/Teams and meeting voice)
 CREATE TABLE gneva_messages (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id          UUID NOT NULL REFERENCES organizations(id),
@@ -421,7 +421,7 @@ GET    /api/memory/entities/{id}/history     # how this entity evolved over meet
 GET    /api/memory/decisions                 # all active decisions
 GET    /api/memory/contradictions            # detected contradictions
 
-POST   /api/ask                              # freeform question to Ggneva (RAG-grounded answer)
+POST   /api/ask                              # freeform question to Gneva (RAG-grounded answer)
 GET    /api/ask/history                      # past Q&A log
 
 GET    /api/actions                          # all open action items across org
@@ -760,7 +760,7 @@ New components: `notifier/slack.py`, `notifier/email.py`, `summarizer.py`
 
 ### Stage 3: Async Team Member
 
-Ggneva joins Slack/Teams as a bot user and listens for:
+Gneva joins Slack/Teams as a bot user and listens for:
 - Direct mentions: `@gneva what did we decide about X?`
 - Channel keywords: `gneva help`, `gneva find`
 - Slash command: `/gneva ask ...`
@@ -773,15 +773,15 @@ New components: `integrations/slack_bot.py`, `integrations/teams_bot.py`, `qa/re
 
 Real-time audio path with Deepgram for live transcription.
 
-Turn detection: Ggneva monitors the live transcript for:
-- Direct address: "Ggneva, what do we know about..."
+Turn detection: Gneva monitors the live transcript for:
+- Direct address: "Gneva, what do we know about..."
 - Natural break (2s silence after a question)
 - Pre-configured trigger phrases
 
 Voice synthesis: ElevenLabs streaming TTS → Recall.ai injects audio into meeting.
 
 Constraint management:
-- Max 1 Ggneva interjection per 5 minutes unless directly addressed
+- Max 1 Gneva interjection per 5 minutes unless directly addressed
 - Never interrupt — wait for complete pause
 - Configurable verbosity level per org (quiet / balanced / proactive)
 

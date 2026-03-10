@@ -1,6 +1,6 @@
-# Ggneva: Go-to-Market & Business Strategy
+# Gneva: Go-to-Market & Business Strategy
 
-**Product:** Ggneva — AI Team Member
+**Product:** Gneva — AI Team Member
 **Tagline:** The team member who never misses a meeting, never forgets a decision, and grows into your most reliable voice in the room.
 **Document Version:** 1.0
 **Date:** March 2026
@@ -28,13 +28,13 @@
 
 ## 1. Executive Summary
 
-Ggneva is an AI team member product that joins meetings, builds persistent organizational memory, and evolves from a silent observer into an active voice participant and project manager surrogate. Unlike meeting transcription tools that produce forgettable summaries, Ggneva accumulates institutional knowledge across every call, thread, and decision, making it genuinely valuable to the organization over time — not just the individual who set it up.
+Gneva is an AI team member product that joins meetings, builds persistent organizational memory, and evolves from a silent observer into an active voice participant and project manager surrogate. Unlike meeting transcription tools that produce forgettable summaries, Gneva accumulates institutional knowledge across every call, thread, and decision, making it genuinely valuable to the organization over time — not just the individual who set it up.
 
-The core thesis: organizations don't need better notes. They need a team member who was in every room, remembers every commitment, and can be asked anything at any time. That product does not exist. Ggneva builds it.
+The core thesis: organizations don't need better notes. They need a team member who was in every room, remembers every commitment, and can be asked anything at any time. That product does not exist. Gneva builds it.
 
 **Strategic anchors:**
 
-- **Network-locked memory**: Ggneva becomes more valuable with every meeting it attends. Switching costs compound monthly.
+- **Network-locked memory**: Gneva becomes more valuable with every meeting it attends. Switching costs compound monthly.
 - **Bottom-up enterprise sales**: Individuals adopt it free, teams upgrade for shared memory, companies pay for voice and compliance.
 - **Solo-bootstrappable**: Break-even at ~50 Pro users. $80K MRR achievable inside 12 months with disciplined execution.
 
@@ -60,7 +60,7 @@ The TAM is defined as all workplace AI spending, encompassing meeting intelligen
 - **CAGR:** 35–43% through 2030
 - **Projected TAM (2030):** $180–220B
 
-This broad framing is justified because Ggneva eventually competes not just with meeting tools but with internal wikis, project management software, onboarding tools, and executive assistants. The value proposition expands as the product matures.
+This broad framing is justified because Gneva eventually competes not just with meeting tools but with internal wikis, project management software, onboarding tools, and executive assistants. The value proposition expands as the product matures.
 
 ### 2.2 Serviceable Addressable Market (SAM)
 
@@ -97,8 +97,8 @@ SOM is intentionally conservative. A 1% SAM capture in 3 years is achievable for
 
 - **Remote/hybrid normalization**: 58% of US knowledge workers now work remotely at least part-time. Meeting volume has grown 3× since 2019. More meetings = more need for memory.
 - **AI agent adoption curve**: Organizations moved from AI curiosity to AI budgets in 2025. Meeting intelligence is a low-risk entry point — easy to trial, easy to measure value.
-- **Knowledge debt crisis**: The average Fortune 500 loses $31.5B per year to employees failing to share knowledge effectively (IDC). Ggneva attacks this directly.
-- **The "meeting tax" narrative**: Executives widely accept that meetings are expensive and under-leveraged. Ggneva has a simple ROI story: a $49/user/month tool that eliminates two wasted hours of meeting recovery per week pays for itself 10× over.
+- **Knowledge debt crisis**: The average Fortune 500 loses $31.5B per year to employees failing to share knowledge effectively (IDC). Gneva attacks this directly.
+- **The "meeting tax" narrative**: Executives widely accept that meetings are expensive and under-leveraged. Gneva has a simple ROI story: a $49/user/month tool that eliminates two wasted hours of meeting recovery per week pays for itself 10× over.
 
 ---
 
@@ -111,7 +111,7 @@ The competitive space is segmented along two axes: **scope** (individual vs. org
 ```
                         ACTIVE VOICE
                              |
-              Ggneva Enterprise |
+              Gneva Enterprise |
                              |
      ________________________|________________________
     |                        |                        |
@@ -125,7 +125,7 @@ INDIVIDUAL                   |                   ORGANIZATIONAL
                         PASSIVE OBSERVER
 ```
 
-**Ggneva's unique position:** The only product targeting the upper-right quadrant — organizational scope with active voice participation. No competitor currently occupies this space. This is the moat.
+**Gneva's unique position:** The only product targeting the upper-right quadrant — organizational scope with active voice participation. No competitor currently occupies this space. This is the moat.
 
 ### 3.2 Competitor Profiles
 
@@ -137,7 +137,7 @@ INDIVIDUAL                   |                   ORGANIZATIONAL
 **Fireflies.ai**
 - Strengths: Good integrations, reasonable pricing, CRM sync
 - Weaknesses: Summary-focused (not memory-focused), no cross-meeting intelligence, passive only
-- Threat level: Low-Medium. Similar motion to Ggneva's early stages; could copy.
+- Threat level: Low-Medium. Similar motion to Gneva's early stages; could copy.
 
 **Fathom**
 - Strengths: Free tier, Zoom-native, excellent UX for summaries
@@ -165,22 +165,22 @@ INDIVIDUAL                   |                   ORGANIZATIONAL
 
 ### 3.3 Competitive Moat Analysis
 
-Ggneva's durable advantages layer over time:
+Gneva's durable advantages layer over time:
 
 **Layer 1: First-mover in the org-memory + voice quadrant (Months 1–12)**
 No one is here yet. The first product to deliver reliable cross-meeting organizational memory with voice participation owns the narrative. Being first matters for SEO, press, and category definition.
 
 **Layer 2: Data compounding moat (Months 6+)**
-Each meeting Ggneva attends adds to the org's memory graph. After 6 months of meetings, Ggneva holds context no new entrant can replicate without starting over. Switching costs grow quadratically — not linearly — with meeting count.
+Each meeting Gneva attends adds to the org's memory graph. After 6 months of meetings, Gneva holds context no new entrant can replicate without starting over. Switching costs grow quadratically — not linearly — with meeting count.
 
 **Layer 3: Network effects within teams (Months 6–12)**
-When multiple team members use Ggneva, it builds shared context. Individual users on a team who try to remove Ggneva find that their colleagues' workflows depend on it. Team-level stickiness converts individual trials into locked accounts.
+When multiple team members use Gneva, it builds shared context. Individual users on a team who try to remove Gneva find that their colleagues' workflows depend on it. Team-level stickiness converts individual trials into locked accounts.
 
 **Layer 4: Voice identity and relationship familiarity (Year 2+)**
-When Ggneva has attended 500 meetings for an organization, team members have a relationship with it. They know how it speaks. They reference it by name. Custom voice personas for Enterprise customers create lock-in that is genuinely irreplaceable — you can't export a voice relationship.
+When Gneva has attended 500 meetings for an organization, team members have a relationship with it. They know how it speaks. They reference it by name. Custom voice personas for Enterprise customers create lock-in that is genuinely irreplaceable — you can't export a voice relationship.
 
 **Layer 5: PM workflow integration (Year 2+)**
-Once Ggneva is scheduling follow-ups, tracking action items, and reminding owners of commitments, it is woven into the operating rhythm of the company. At that stage, Ggneva is not a tool — it is a team member, and team members are not unsubscribed.
+Once Gneva is scheduling follow-ups, tracking action items, and reminding owners of commitments, it is woven into the operating rhythm of the company. At that stage, Gneva is not a tool — it is a team member, and team members are not unsubscribed.
 
 ### 3.4 Moat Vulnerability Assessment
 
@@ -188,7 +188,7 @@ Once Ggneva is scheduling follow-ups, tracking action items, and reminding owner
 |---|---|---|---|
 | Microsoft Copilot adds org memory | High | High | Win SMB first, use data depth as defense |
 | Read.ai adds voice participation | Medium | High | Accelerate voice timeline to Year 1 Q4 |
-| Notion launches meeting ingestion | Medium | Medium | Ggneva is active participant; Notion is passive |
+| Notion launches meeting ingestion | Medium | Medium | Gneva is active participant; Notion is passive |
 | Open-source transcription commoditizes base layer | High | Low | Moat is memory + voice, not transcription |
 | Privacy regulation kills meeting recording | Low | Very High | Consent-first architecture; see Section 12 |
 
@@ -196,31 +196,31 @@ Once Ggneva is scheduling follow-ups, tracking action items, and reminding owner
 
 ## 4. Product Strategy & Positioning
 
-### 4.1 The Three Phases of Ggneva
+### 4.1 The Three Phases of Gneva
 
 **Phase 1: Silent Observer (Months 1–6)**
-Ggneva joins meetings as a non-speaking participant. It transcribes, summarizes, extracts action items, and builds the organization's memory graph. Users interact with Ggneva via @mentions in Slack or a web dashboard: "Ggneva, what did we decide about the rebrand last month?" This phase proves the memory value proposition.
+Gneva joins meetings as a non-speaking participant. It transcribes, summarizes, extracts action items, and builds the organization's memory graph. Users interact with Gneva via @mentions in Slack or a web dashboard: "Gneva, what did we decide about the rebrand last month?" This phase proves the memory value proposition.
 
 **Phase 2: Active Responder (Months 7–12)**
-Ggneva gains a voice. It can be addressed in meetings — "Ggneva, what did we say about this in the Q4 planning call?" — and responds verbally. It can also speak up proactively when it detects a decision contradicting a prior commitment. This phase transforms Ggneva from a tool into a team member.
+Gneva gains a voice. It can be addressed in meetings — "Gneva, what did we say about this in the Q4 planning call?" — and responds verbally. It can also speak up proactively when it detects a decision contradicting a prior commitment. This phase transforms Gneva from a tool into a team member.
 
 **Phase 3: PM Surrogate (Year 2+)**
-Ggneva owns action items. It schedules follow-ups, pings owners when deadlines approach, resurfaces relevant context when recurring topics arise, and generates weekly team health digests. It attends stand-ups and reports on project status from memory. At this stage, Ggneva is a junior project manager — the highest-value and highest-retention tier.
+Gneva owns action items. It schedules follow-ups, pings owners when deadlines approach, resurfaces relevant context when recurring topics arise, and generates weekly team health digests. It attends stand-ups and reports on project status from memory. At this stage, Gneva is a junior project manager — the highest-value and highest-retention tier.
 
 ### 4.2 Positioning Statement
 
-For teams of 5–500 who run on meetings and lose critical knowledge between them, Ggneva is the AI team member that attends every meeting, never forgets a decision, and grows into an active voice in the room. Unlike Otter or Fireflies, which produce summaries for individuals, Ggneva builds organizational memory that compounds over time and speaks when it matters.
+For teams of 5–500 who run on meetings and lose critical knowledge between them, Gneva is the AI team member that attends every meeting, never forgets a decision, and grows into an active voice in the room. Unlike Otter or Fireflies, which produce summaries for individuals, Gneva builds organizational memory that compounds over time and speaks when it matters.
 
 ### 4.3 The "New Team Member" Framing
 
-The single most important positioning decision: Ggneva is not a tool. It is a team member. This framing:
+The single most important positioning decision: Gneva is not a tool. It is a team member. This framing:
 
 - Justifies per-seat pricing (you pay per team member, not per feature)
-- Creates emotional adoption (you introduce Ggneva; you don't configure it)
-- Enables viral growth (new employees are "introduced to Ggneva" during onboarding)
+- Creates emotional adoption (you introduce Gneva; you don't configure it)
+- Enables viral growth (new employees are "introduced to Gneva" during onboarding)
 - Sets the right expectation for the memory moat (team members get smarter over time)
 
-Every piece of copy, onboarding flow, and Slack message should reinforce this frame. Ggneva sends messages in first person. Ggneva has a name, not a logo. Ggneva says "I remember" not "the transcript shows."
+Every piece of copy, onboarding flow, and Slack message should reinforce this frame. Gneva sends messages in first person. Gneva has a name, not a logo. Gneva says "I remember" not "the transcript shows."
 
 ---
 
@@ -231,7 +231,7 @@ Every piece of copy, onboarding flow, and Slack message should reinforce this fr
 | Tier | Price | Target User | Key Features |
 |---|---|---|---|
 | **Free** | $0 | Individual / trial | 5 meetings/month, basic summaries, 30-day memory |
-| **Pro** | $29/month | Individual power user | Unlimited meetings, full memory, @Ggneva chat, 3 integrations |
+| **Pro** | $29/month | Individual power user | Unlimited meetings, full memory, @Gneva chat, 3 integrations |
 | **Team** | $49/user/month | Teams 5–50 | Org memory, team insights, Slack integration, admin dashboard |
 | **Enterprise** | $79+/user/month | 50+ users | Voice participation, on-prem option, SSO/SAML, custom voice, SLA |
 
@@ -247,7 +247,7 @@ Every piece of copy, onboarding flow, and Slack message should reinforce this fr
 - Priced as a "team member" not a "software license" — $49/month per person is the cost of a decent lunch
 - Org memory feature creates genuine incremental value over Pro (not just volume)
 - Team plans require minimum 3 seats, so minimum $147/month — meaningful MRR per account
-- Upgrade path from Pro is obvious: "Your team is also using Ggneva, but you're not sharing memory"
+- Upgrade path from Pro is obvious: "Your team is also using Gneva, but you're not sharing memory"
 
 **Why $79+ for Enterprise?**
 - Voice participation is the anchor feature — it has no comparable product to benchmark against
@@ -267,9 +267,9 @@ Every piece of copy, onboarding flow, and Slack message should reinforce this fr
 The Free tier is the top of the funnel, not a retention tier. Conversion triggers are designed to hit at moments of genuine value realization:
 
 1. **Memory limit hit**: Free users get 30-day memory. When they try to ask "what did we say about X in January?" and hit the wall, the upgrade prompt is perfectly timed.
-2. **6th meeting of the month**: Free limit is 5. On the 6th invite, Ggneva sends a personal message: "I'd love to join, but I've used all my free meetings this month. Want to keep me on the team?"
-3. **Team invitation**: When a Free user invites Ggneva to a meeting where others are present, it surfaces Team tier features post-meeting: "I noticed 4 of your colleagues were in that call. If you upgrade to Team, we can build shared memory across your organization."
-4. **@Ggneva query on paid feature**: Free users can see the @Ggneva interface but get gated responses for cross-meeting queries: "I remember discussions about this from before last month — upgrade Pro to unlock full memory."
+2. **6th meeting of the month**: Free limit is 5. On the 6th invite, Gneva sends a personal message: "I'd love to join, but I've used all my free meetings this month. Want to keep me on the team?"
+3. **Team invitation**: When a Free user invites Gneva to a meeting where others are present, it surfaces Team tier features post-meeting: "I noticed 4 of your colleagues were in that call. If you upgrade to Team, we can build shared memory across your organization."
+4. **@Gneva query on paid feature**: Free users can see the @Gneva interface but get gated responses for cross-meeting queries: "I remember discussions about this from before last month — upgrade Pro to unlock full memory."
 
 ### 5.4 Enterprise Packaging
 
@@ -278,7 +278,7 @@ Enterprise is not just more features — it is a different procurement motion:
 - **Procurement**: Legal review, security questionnaire, IT sign-off. Offer SOC 2 Type II report, BAA for healthcare, DPA for GDPR.
 - **Champion program**: Identify the internal champion (usually a chief of staff, operations lead, or IT director). Give them a free Team account for 90 days with white-glove onboarding.
 - **Pilot structure**: 30-day pilot with defined success metrics (reduction in "what did we decide?" Slack messages, action item completion rate, meeting prep time). Measure and share results.
-- **Custom voice**: Charged as an add-on ($10–15/user/month on top of base Enterprise). Allows org to name their Ggneva instance and choose voice characteristics. Massive lock-in — teams become attached.
+- **Custom voice**: Charged as an add-on ($10–15/user/month on top of base Enterprise). Allows org to name their Gneva instance and choose voice characteristics. Massive lock-in — teams become attached.
 
 ---
 
@@ -377,7 +377,7 @@ Realistic break-even: **Month 4** with disciplined beta conversion.
 ```
 AWARENESS → ACTIVATION → HABIT → EXPANSION → ADVOCACY
   Content     Free Trial    5 meetings   Team invite   Referral
-  Community   Onboarding    @Ggneva query  Upgrade CTA   Case study
+  Community   Onboarding    @Gneva query  Upgrade CTA   Case study
   Press        Demo         Slack msg    Account growth Public post
 ```
 
@@ -388,18 +388,18 @@ AWARENESS → ACTIVATION → HABIT → EXPANSION → ADVOCACY
 **Investment:** ~$500/month + 10 hrs/week founder time
 **Target ROI:** 40% of total free signups
 
-The meeting intelligence category has high SEO potential for informational and comparison queries. Produce content that ranks before Ggneva launches and continues compounding.
+The meeting intelligence category has high SEO potential for informational and comparison queries. Produce content that ranks before Gneva launches and continues compounding.
 
 **Target keyword clusters:**
 - "best AI meeting assistant 2026" (high volume, commercial intent)
 - "how to never lose meeting context" (problem-aware, top of funnel)
 - "team knowledge management AI" (SAM targeting)
-- "Otter vs Fireflies vs [Ggneva]" (comparison, bottom funnel)
+- "Otter vs Fireflies vs [Gneva]" (comparison, bottom funnel)
 - "recording consent laws [jurisdiction]" (legal questions — high trust content)
 
 **Content formats:**
 - Long-form guides (2,500+ words): "The Complete Guide to AI Meeting Assistants in 2026"
-- Comparison posts: "Otter.ai vs Fireflies vs Fathom vs Ggneva — An Honest Comparison"
+- Comparison posts: "Otter.ai vs Fireflies vs Fathom vs Gneva — An Honest Comparison"
 - Use-case posts: "How Remote Engineering Teams Use AI to Eliminate Redundant Meetings"
 - Thought leadership: "Why Your Meeting Notes Are Killing Your Organization's Memory"
 - Legal/compliance: "Recording Consent Laws for Remote Meetings: A State-by-State Guide"
@@ -416,7 +416,7 @@ The founding story — "the AI that remembers what your team forgot" — is inhe
 **Target communities:**
 - Hacker News: "Show HN" launch + "Ask HN: How do you handle organizational memory?" threads
 - r/productivity, r/remotework, r/startup (genuine participation, not spam)
-- Twitter/X: Build in public. Share metrics, learnings, interesting Ggneva interactions.
+- Twitter/X: Build in public. Share metrics, learnings, interesting Gneva interactions.
 - LinkedIn: Target operations leads, chiefs of staff, founders. These are Team/Enterprise buyers.
 - Indie Hackers: Build-in-public series. This community converts well to early adopters.
 - Product Hunt: Plan a coordinated launch in Month 3 to coincide with beta.
@@ -429,13 +429,13 @@ Share monthly revenue, user counts, and product decisions publicly. This generat
 **Investment:** Engineering time, $0 cash
 **Target ROI:** 25% of Team tier conversions
 
-Every meeting Ggneva attends is a distribution event. When Ggneva joins a meeting with 8 attendees, 7 of those attendees see Ggneva and potentially become users.
+Every meeting Gneva attends is a distribution event. When Gneva joins a meeting with 8 attendees, 7 of those attendees see Gneva and potentially become users.
 
 **PLG mechanics:**
-- Ggneva's calendar invite includes: "Introduced by [host]. Want your own Ggneva? → link"
-- Post-meeting summary emails include Ggneva branding and signup prompt for non-users
-- @Ggneva Slack messages are visible to the whole channel — non-users see the product in action
-- "Ggneva is attending" notification in Zoom/Meet shows Ggneva's profile with a link
+- Gneva's calendar invite includes: "Introduced by [host]. Want your own Gneva? → link"
+- Post-meeting summary emails include Gneva branding and signup prompt for non-users
+- @Gneva Slack messages are visible to the whole channel — non-users see the product in action
+- "Gneva is attending" notification in Zoom/Meet shows Gneva's profile with a link
 
 **Virality coefficient target:** K > 0.3 (each user brings 0.3 additional users organically). Achievable via meeting invitations.
 
@@ -446,8 +446,8 @@ Every meeting Ggneva attends is a distribution event. When Ggneva joins a meetin
 
 **Priority partners:**
 - **Notion**: Integration for piping meeting memory into Notion databases. Notion's marketplace has 6M+ users.
-- **Linear / Jira**: Ggneva creates tickets from action items. Engineering teams love this.
-- **Zapier / Make**: Ggneva as a Zapier app — connects to thousands of workflows
+- **Linear / Jira**: Gneva creates tickets from action items. Engineering teams love this.
+- **Zapier / Make**: Gneva as a Zapier app — connects to thousands of workflows
 - **Slack**: Be featured in Slack App Directory. Requires app review but drives organic installs.
 - **HubSpot / Salesforce**: Pipe meeting memory into CRM. Sales team use case is very strong.
 
@@ -498,7 +498,7 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 - Whisper / Deepgram transcription pipeline
 - GPT-4o / Claude Haiku summarization (structured prompts for action items, decisions, context)
 - Basic memory graph (PostgreSQL + pgvector for semantic search)
-- @Ggneva Slack bot (slash commands: `/gneva what did we decide about X?`)
+- @Gneva Slack bot (slash commands: `/gneva what did we decide about X?`)
 - Web dashboard (meeting history, search, account settings)
 - Stripe integration for billing
 
@@ -509,7 +509,7 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 - Domain, brand, basic landing page
 
 **Success criteria:**
-- Ggneva can join a Zoom meeting, transcribe it, summarize it, and answer a @Slack query about it
+- Gneva can join a Zoom meeting, transcribe it, summarize it, and answer a @Slack query about it
 - 10 alpha users providing weekly feedback
 
 ### Months 3–4: Beta Launch
@@ -520,7 +520,7 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 - Improved memory graph with entity extraction (people, projects, decisions, commitments)
 - Email summary delivery (post-meeting digest)
 - Admin dashboard for account owners
-- Onboarding flow (connect calendar → invite Ggneva → first meeting)
+- Onboarding flow (connect calendar → invite Gneva → first meeting)
 
 **Business milestones:**
 - Product Hunt launch (target Top 5 of the day)
@@ -537,7 +537,7 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 
 **Engineering milestones:**
 - Microsoft Teams integration
-- Full Slack app (not just bot — search Ggneva memory from Slack, surface proactive insights)
+- Full Slack app (not just bot — search Gneva memory from Slack, surface proactive insights)
 - Memory export (JSON, PDF) — critical for enterprise evaluation
 - Webhook support for custom integrations
 - Usage analytics dashboard (admin sees meeting count, query volume, top topics)
@@ -580,8 +580,8 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 
 **Engineering milestones:**
 - Voice synthesis pipeline (ElevenLabs or Azure TTS — choose for naturalness and latency)
-- Meeting "wake word" detection: Ggneva responds when addressed by name
-- Proactive voice alerts: Ggneva flags contradiction with prior decisions in real time
+- Meeting "wake word" detection: Gneva responds when addressed by name
+- Proactive voice alerts: Gneva flags contradiction with prior decisions in real time
 - Voice persona configuration (Enterprise: custom name, voice gender, speaking style)
 - Latency optimization (target <2 second response time from voice query to spoken answer)
 - Recording and consent flow (see Section 12 — consent announcement at meeting start)
@@ -590,7 +590,7 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 - Private voice beta with 20 Team/Enterprise accounts
 - Enterprise tier announced (not yet priced publicly)
 - First paid enterprise pilot signed
-- Content: "Introducing Voice Ggneva" blog post + demo video
+- Content: "Introducing Voice Gneva" blog post + demo video
 
 **Success criteria:**
 - Voice beta NPS > 60
@@ -689,9 +689,9 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 | ARR | ~$8–10M |
 | Team | 6–8 FTEs |
 | Key milestone | Raise Series A or remain profitable |
-| New products | Ggneva for Sales, Ggneva for Recruiting |
+| New products | Gneva for Sales, Gneva for Recruiting |
 
-**Year 3 headline:** Category leadership. Ggneva is the recognized leader in organizational memory. Vertical expansions (sales teams, recruiting teams) multiply TAM. Series A raise becomes a real option, with strong financials giving leverage over terms.
+**Year 3 headline:** Category leadership. Gneva is the recognized leader in organizational memory. Vertical expansions (sales teams, recruiting teams) multiply TAM. Series A raise becomes a real option, with strong financials giving leverage over terms.
 
 ### 9.5 Three-Year Summary
 
@@ -707,7 +707,7 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 
 ### 10.1 North Star Metric
 
-**Meetings attended per paying account per month** — this measures whether Ggneva is genuinely used as a team member, not just activated and forgotten. Target: 8+ meetings/account/month by Month 6.
+**Meetings attended per paying account per month** — this measures whether Gneva is genuinely used as a team member, not just activated and forgotten. Target: 8+ meetings/account/month by Month 6.
 
 ### 10.2 Growth Metrics
 
@@ -729,7 +729,7 @@ Target: Operations leads, chiefs of staff, remote-first companies, companies wit
 | Day-7 activation rate (≥2 meetings attended) | >60% |
 | Day-30 retention (active users) | >55% |
 | Meetings attended per active user/month | >8 |
-| @Ggneva queries per active user/month | >5 |
+| @Gneva queries per active user/month | >5 |
 | Net Promoter Score | >55 |
 
 ### 10.4 Unit Economics Metrics
@@ -759,7 +759,7 @@ Track these weekly to catch problems early:
 - Free → Pro conversions this week
 - Pro → Team upgrades this week
 - Meetings attended (product usage health)
-- @Ggneva queries (memory engagement)
+- @Gneva queries (memory engagement)
 - Churn notices / cancellations
 - Support tickets by category (product quality signal)
 
@@ -798,7 +798,7 @@ Growth stalls at $15K MRR due to poor conversion or high churn. Root cause: memo
 
 ## 12. Legal Considerations: Recording Consent by Jurisdiction
 
-Recording consent law is the most significant legal risk for Ggneva. This section must inform product architecture, not just legal disclaimers.
+Recording consent law is the most significant legal risk for Gneva. This section must inform product architecture, not just legal disclaimers.
 
 ### 12.1 Core Legal Framework
 
@@ -823,13 +823,13 @@ Federal law (Electronic Communications Privacy Act) requires one-party consent. 
 | **Massachusetts** | MGL c.272 §99 | All-party consent. Criminal penalties. |
 | **Michigan** | MCL §750.539c | All-party consent. |
 | **Montana** | §45-8-213 MCA | All-party consent. |
-| **Ggnevada** | NRS §200.620 | All-party consent. |
+| **Gnevada** | NRS §200.620 | All-party consent. |
 | **New Hampshire** | RSA §570-A:2 | All-party consent. |
 | **Oregon** | ORS §165.540 | All-party consent. |
 | **Pennsylvania** | 18 Pa.C.S. §5703 | All-party consent. Criminal penalties. |
 | **Washington** | RCW §9.73.030 | All-party consent. Civil + criminal liability. |
 
-**Practical implication for Ggneva:** Because California alone accounts for ~30% of US B2B SaaS customers, Ggneva **must** operate as if all-party consent is required in all meetings. Build accordingly.
+**Practical implication for Gneva:** Because California alone accounts for ~30% of US B2B SaaS customers, Gneva **must** operate as if all-party consent is required in all meetings. Build accordingly.
 
 ### 12.3 International Jurisdictions
 
@@ -843,17 +843,17 @@ Federal law (Electronic Communications Privacy Act) requires one-party consent. 
 | **France** | GDPR + French Data Protection Law | Consent required. CNIL (regulator) has issued guidance on AI in meetings. |
 | **Japan** | Act on Protection of Personal Information | Consent required for personal data collection; voice recordings qualify. |
 
-### 12.4 Ggneva's Consent Architecture (Product Requirements)
+### 12.4 Gneva's Consent Architecture (Product Requirements)
 
 **Non-negotiable technical requirements:**
 
-1. **Consent announcement at meeting start**: When Ggneva joins any meeting, it must audibly announce: "Hi, I'm Ggneva, an AI assistant. This meeting will be recorded and transcribed for [Organization Name]. If you'd like to opt out, please let the host know or leave the meeting." This announcement is required, automatic, and cannot be disabled.
+1. **Consent announcement at meeting start**: When Gneva joins any meeting, it must audibly announce: "Hi, I'm Gneva, an AI assistant. This meeting will be recorded and transcribed for [Organization Name]. If you'd like to opt out, please let the host know or leave the meeting." This announcement is required, automatic, and cannot be disabled.
 
 2. **Consent banner in meeting UI**: For platforms that support it (Zoom, Teams), a visible notification in the meeting UI indicating recording is in progress. Most platforms have native functionality for this.
 
-3. **Meeting host consent**: The meeting host (Ggneva's customer) must explicitly acknowledge consent obligations in Terms of Service during signup. They accept responsibility for obtaining participant consent in their jurisdiction.
+3. **Meeting host consent**: The meeting host (Gneva's customer) must explicitly acknowledge consent obligations in Terms of Service during signup. They accept responsibility for obtaining participant consent in their jurisdiction.
 
-4. **External participant handling**: Ggneva must flag meetings with external participants (non-org email domains) for heightened consent treatment. Recommend Enterprise customers configure external participant notifications.
+4. **External participant handling**: Gneva must flag meetings with external participants (non-org email domains) for heightened consent treatment. Recommend Enterprise customers configure external participant notifications.
 
 5. **Data retention controls**: GDPR requires data minimization and erasure rights. Provide:
    - Configurable retention period (30/90/365 days or custom)
@@ -960,7 +960,7 @@ Users say "I want a voice export button." They mean "I waste 20 minutes extracti
 
 ### 14.1 The Core Question
 
-Ggneva is bootstrappable to $80K MRR. This is a material fact that gives you genuine leverage: you don't need outside capital to survive. The question is not "do we need to raise?" but "would raising capital accelerate the outcome enough to justify the dilution and constraints?"
+Gneva is bootstrappable to $80K MRR. This is a material fact that gives you genuine leverage: you don't need outside capital to survive. The question is not "do we need to raise?" but "would raising capital accelerate the outcome enough to justify the dilution and constraints?"
 
 ### 14.2 Bootstrapping Path
 
@@ -1042,7 +1042,7 @@ Worth modeling from the start, even if not the plan:
 - Zoom (strategic fit: native AI in meetings)
 - Salesforce (meeting memory → CRM gold mine)
 - Microsoft (if Copilot falls short; more likely they build than buy)
-- Atlassian (Confluence + Jira + Ggneva = complete organizational intelligence)
+- Atlassian (Confluence + Jira + Gneva = complete organizational intelligence)
 
 **Acquisition trigger:** $5–10M ARR, strong retention, proprietary memory graph
 
@@ -1077,7 +1077,7 @@ For a solo founder building fast with an eye toward scaling:
 
 **Q1 (Months 1–3)**
 - Objective: Ship a product users find indispensable
-- KR1: 10 alpha users complete 20+ meetings with Ggneva
+- KR1: 10 alpha users complete 20+ meetings with Gneva
 - KR2: NPS > 50 from alpha cohort
 - KR3: Beta waitlist of 500+ signups
 
@@ -1102,4 +1102,4 @@ For a solo founder building fast with an eye toward scaling:
 
 ---
 
-*Document prepared for Ggneva product planning. All financial projections are estimates based on market research and comparable SaaS benchmarks. Actual results will vary based on execution, market conditions, and competitive response.*
+*Document prepared for Gneva product planning. All financial projections are estimates based on market research and comparable SaaS benchmarks. Actual results will vary based on execution, market conditions, and competitive response.*

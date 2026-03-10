@@ -1,16 +1,16 @@
-# Ggneva
+# Gneva
 
 **AI team member that joins your meetings, builds organizational memory, and grows from silent observer to active participant.**
 
-## What is Ggneva?
+## What is Gneva?
 
-Ggneva is not another meeting notetaker. It's a team member that learns. It joins your meetings, builds a knowledge graph connecting people, projects, decisions, and action items across every conversation, and grows more capable over time.
+Gneva is not another meeting notetaker. It's a team member that learns. It joins your meetings, builds a knowledge graph connecting people, projects, decisions, and action items across every conversation, and grows more capable over time.
 
 ### Growth Stages
 
 1. **Silent Observer** — Transcribes, summarizes, builds memory
 2. **Post-Meeting Analyst** — Action items, pre-meeting briefs, pattern detection
-3. **Async Team Member** — @Ggneva in Slack/Teams, answers from organizational memory
+3. **Async Team Member** — @Gneva in Slack/Teams, answers from organizational memory
 4. **Active Participant** — Voice in meetings, surfaces context, flags contradictions
 5. **Autonomous PM** — Proactive management, represents absent members
 
