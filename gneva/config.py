@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     # App
     debug: bool = False
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8100"]
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

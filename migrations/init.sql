@@ -1,8 +1,16 @@
 -- Gneva: Initial database schema
--- Requires: PostgreSQL 16 + pgvector extension
+-- PostgreSQL 16
+-- Note: pgvector extension added when available (Linux/Docker deployment)
+-- On Windows dev, embedding columns use JSONB fallback
 
-CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Try to create pgvector if available, ignore error if not
+DO $$ BEGIN
+    CREATE EXTENSION IF NOT EXISTS vector;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'pgvector not available — using JSONB for embeddings';
+END $$;
 
 -- Organizations and Users
 CREATE TABLE organizations (
@@ -65,12 +73,11 @@ CREATE TABLE transcript_segments (
     end_ms          INTEGER NOT NULL,
     text            TEXT NOT NULL,
     confidence      FLOAT,
-    embedding       vector(384),
+    embedding       JSONB,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_segments_transcript ON transcript_segments(transcript_id);
-CREATE INDEX idx_segments_embedding ON transcript_segments USING hnsw (embedding vector_cosine_ops);
 
 -- Knowledge Graph: Entities
 CREATE TABLE entities (
@@ -81,7 +88,7 @@ CREATE TABLE entities (
     canonical   TEXT NOT NULL,
     description TEXT,
     metadata_json JSONB DEFAULT '{}',
-    embedding   vector(384),
+    embedding   JSONB,
     first_seen  TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_seen   TIMESTAMPTZ NOT NULL DEFAULT now(),
     mention_count INTEGER NOT NULL DEFAULT 1,
@@ -89,7 +96,6 @@ CREATE TABLE entities (
 );
 
 CREATE INDEX idx_entities_org_type ON entities(org_id, type);
-CREATE INDEX idx_entities_embedding ON entities USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX idx_entities_canonical ON entities(org_id, canonical text_pattern_ops);
 
 -- Knowledge Graph: Relationships
@@ -168,11 +174,9 @@ CREATE TABLE meeting_summaries (
     topics_covered  TEXT[] NOT NULL DEFAULT '{}',
     sentiment       TEXT,
     follow_up_needed BOOLEAN DEFAULT false,
-    embedding       vector(384),
+    embedding       JSONB,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_summaries_embedding ON meeting_summaries USING hnsw (embedding vector_cosine_ops);
 
 -- Contradiction Log
 CREATE TABLE contradictions (
