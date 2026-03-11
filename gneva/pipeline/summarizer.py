@@ -3,9 +3,8 @@
 import logging
 from dataclasses import dataclass
 
-import anthropic
-
 from gneva.config import get_settings
+from gneva.services import get_anthropic_client
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -62,8 +61,11 @@ class SummaryResult:
 
 
 def generate_summary(transcript_text: str, entities_context: str = "") -> SummaryResult:
-    """Generate a meeting summary using Claude Sonnet."""
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    """Generate a meeting summary using Claude Sonnet.
+
+    Raises RuntimeError if the Anthropic client is unavailable.
+    """
+    client = get_anthropic_client()  # raises RuntimeError if key not set
 
     user_msg = f"Meeting transcript:\n\n{transcript_text[:15000]}"
     if entities_context:

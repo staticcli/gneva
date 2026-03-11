@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Video, Clock, Users } from 'lucide-react'
+import { Plus, Video, Clock, Users, Sparkles } from 'lucide-react'
 import { api } from '../api'
 
 interface Meeting {
@@ -20,21 +20,25 @@ export default function Dashboard() {
   const [showJoin, setShowJoin] = useState(false);
   const [meetingUrl, setMeetingUrl] = useState('');
   const [meetingTitle, setMeetingTitle] = useState('');
+  const [botName, setBotName] = useState('Gneva');
   const [joining, setJoining] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState(false);
 
   useEffect(() => {
     api.meetings().then(r => setMeetings(r.meetings)).catch(console.error);
+
+    // Poll for status updates when there are active meetings
+    const interval = setInterval(() => {
+      api.meetings().then(r => setMeetings(r.meetings)).catch(console.error);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setJoining(true);
     try {
-      const platform = meetingUrl.includes('zoom') ? 'zoom'
-        : meetingUrl.includes('meet.google') ? 'meet'
-        : meetingUrl.includes('teams') ? 'teams' : 'zoom';
-
-      await api.joinMeeting(meetingUrl, platform, meetingTitle || undefined);
+      await api.joinMeeting(meetingUrl, 'auto', meetingTitle || undefined, botName || undefined);
       setShowJoin(false);
       setMeetingUrl('');
       setMeetingTitle('');
@@ -66,13 +70,34 @@ export default function Dashboard() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-bold">Meetings</h2>
-        <button
-          onClick={() => setShowJoin(true)}
-          className="flex items-center gap-2 bg-gneva-600 text-white px-4 py-2 rounded-lg hover:bg-gneva-700 transition-colors"
-        >
-          <Plus size={18} />
-          Join Meeting
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={async () => {
+              setLoadingDemo(true);
+              try {
+                await api.createDemoMeeting();
+                const r = await api.meetings();
+                setMeetings(r.meetings);
+              } catch (err: any) {
+                alert(err.message);
+              } finally {
+                setLoadingDemo(false);
+              }
+            }}
+            disabled={loadingDemo}
+            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+          >
+            <Sparkles size={18} />
+            {loadingDemo ? 'Processing with AI...' : 'Load Demo Meeting'}
+          </button>
+          <button
+            onClick={() => setShowJoin(true)}
+            className="flex items-center gap-2 bg-gneva-600 text-white px-4 py-2 rounded-lg hover:bg-gneva-700 transition-colors"
+          >
+            <Plus size={18} />
+            Join Meeting
+          </button>
+        </div>
       </div>
 
       {/* Join meeting modal */}
@@ -93,6 +118,13 @@ export default function Dashboard() {
               placeholder="Meeting title (optional)"
               value={meetingTitle}
               onChange={e => setMeetingTitle(e.target.value)}
+              className="w-full px-4 py-2.5 border rounded-lg mb-3 focus:ring-2 focus:ring-gneva-500 outline-none"
+            />
+            <input
+              type="text"
+              placeholder="Bot display name"
+              value={botName}
+              onChange={e => setBotName(e.target.value)}
               className="w-full px-4 py-2.5 border rounded-lg mb-4 focus:ring-2 focus:ring-gneva-500 outline-none"
             />
             <div className="flex gap-3">

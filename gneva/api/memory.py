@@ -13,6 +13,10 @@ from gneva.auth import get_current_user
 router = APIRouter(prefix="/api/memory", tags=["memory"])
 
 
+def _escape_like(s: str) -> str:
+    return s.replace("%", r"\%").replace("_", r"\_")
+
+
 @router.get("/search")
 async def search_memory(
     q: str = Query(..., min_length=1),
@@ -23,12 +27,13 @@ async def search_memory(
 ):
     """Hybrid keyword + semantic search across org memory."""
     # For now, keyword search. Semantic search will be added when embedding pipeline is ready.
+    escaped_q = _escape_like(q)
     query = (
         select(Entity)
         .where(Entity.org_id == user.org_id)
         .where(or_(
-            Entity.name.ilike(f"%{q}%"),
-            Entity.description.ilike(f"%{q}%"),
+            Entity.name.ilike(f"%{escaped_q}%"),
+            Entity.description.ilike(f"%{escaped_q}%"),
         ))
     )
     if type:
@@ -98,10 +103,10 @@ async def get_entity(
 
     # Get relationships
     rels_out = (await db.execute(
-        select(EntityRelationship).where(EntityRelationship.source_id == entity_id)
+        select(EntityRelationship).where(EntityRelationship.source_id == entity_id, EntityRelationship.org_id == user.org_id)
     )).scalars().all()
     rels_in = (await db.execute(
-        select(EntityRelationship).where(EntityRelationship.target_id == entity_id)
+        select(EntityRelationship).where(EntityRelationship.target_id == entity_id, EntityRelationship.org_id == user.org_id)
     )).scalars().all()
 
     return {
@@ -126,16 +131,23 @@ async def get_entity(
 @router.get("/decisions")
 async def list_decisions(
     status: str = "active",
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    base = select(Decision).where(Decision.org_id == user.org_id, Decision.status == status)
+
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
+
     decisions = (await db.execute(
-        select(Decision)
-        .where(Decision.org_id == user.org_id, Decision.status == status)
-        .order_by(Decision.created_at.desc())
+        base.order_by(Decision.created_at.desc()).offset(offset).limit(limit)
     )).scalars().all()
 
     return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
         "decisions": [
             {
                 "id": str(d.id),
@@ -152,16 +164,23 @@ async def list_decisions(
 
 @router.get("/contradictions")
 async def list_contradictions(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    base = select(Contradiction).where(Contradiction.org_id == user.org_id, Contradiction.status == "open")
+
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar() or 0
+
     contradictions = (await db.execute(
-        select(Contradiction)
-        .where(Contradiction.org_id == user.org_id, Contradiction.status == "open")
-        .order_by(Contradiction.detected_at.desc())
+        base.order_by(Contradiction.detected_at.desc()).offset(offset).limit(limit)
     )).scalars().all()
 
     return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
         "contradictions": [
             {
                 "id": str(c.id),

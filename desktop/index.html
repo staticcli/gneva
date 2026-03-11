@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gneva</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      /* Allow frameless window dragging */
+      -webkit-app-region: drag;
+    }
+
+    .container {
+      text-align: center;
+      -webkit-app-region: no-drag;
+    }
+
+    .logo {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 2rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 1.5rem;
+      border: 3px solid rgba(148, 163, 184, 0.2);
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .status {
+      font-size: 0.875rem;
+      color: #94a3b8;
+    }
+
+    .status.error {
+      color: #f87171;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Gneva</div>
+    <div class="spinner" id="spinner"></div>
+    <div class="status" id="status">Starting server&hellip;</div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:8100";
+    const HEALTH_URL = `${API_URL}/health`;
+    const FRONTEND_URL = "http://localhost:3000";
+    const POLL_INTERVAL = 800;
+    const MAX_WAIT = 45000;
+
+    const statusEl = document.getElementById("status");
+    const start = Date.now();
+
+    async function checkReady() {
+      try {
+        const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(2000) });
+        if (res.ok) return true;
+      } catch {
+        // not ready yet
+      }
+      return false;
+    }
+
+    async function poll() {
+      const elapsed = Date.now() - start;
+
+      if (elapsed > MAX_WAIT) {
+        statusEl.textContent = "Server took too long to start. Check logs.";
+        statusEl.classList.add("error");
+        document.getElementById("spinner").style.display = "none";
+        return;
+      }
+
+      const ready = await checkReady();
+      if (ready) {
+        statusEl.textContent = "Connected! Loading app\u2026";
+        // The main process will handle navigation once the API is up.
+        // As a fallback, redirect from here after a short delay.
+        setTimeout(() => {
+          window.location.href = FRONTEND_URL;
+        }, 500);
+        return;
+      }
+
+      const secs = Math.floor(elapsed / 1000);
+      statusEl.textContent = `Starting server\u2026 (${secs}s)`;
+      setTimeout(poll, POLL_INTERVAL);
+    }
+
+    poll();
+  </script>
+</body>
+</html>

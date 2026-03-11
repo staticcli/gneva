@@ -4,9 +4,8 @@ import json
 import logging
 from dataclasses import dataclass, field
 
-import anthropic
-
 from gneva.config import get_settings
+from gneva.services import get_anthropic_client
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -107,8 +106,13 @@ def extract_entities(transcript_text: str, chunk_size: int = 4000, overlap: int 
     """Extract entities from a transcript using Claude Haiku.
 
     Processes transcript in chunks with overlap to avoid missing entities at boundaries.
+    Returns empty ExtractionResult if the Anthropic client is unavailable.
     """
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    try:
+        client = get_anthropic_client()
+    except RuntimeError as e:
+        logger.warning("Skipping entity extraction: %s", e)
+        return ExtractionResult()
     result = ExtractionResult()
 
     # Split into chunks

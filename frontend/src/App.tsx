@@ -7,6 +7,10 @@ import Dashboard from './pages/Dashboard'
 import MeetingDetail from './pages/MeetingDetail'
 import Memory from './pages/Memory'
 import Ask from './pages/Ask'
+import Calendar from './pages/Calendar'
+import ActionCenter from './pages/ActionCenter'
+import Analytics from './pages/Analytics'
+import Settings from './pages/Settings'
 
 interface User {
   id: string;
@@ -47,6 +51,10 @@ export default function App() {
         <Route path="/meetings/:id" element={<MeetingDetail />} />
         <Route path="/memory" element={<Memory />} />
         <Route path="/ask" element={<Ask />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/actions" element={<ActionCenter />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>

@@ -48,8 +48,16 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Create org
-    slug = req.org_name.lower().replace(" ", "-")[:50]
+    # Create org with unique slug
+    base_slug = req.org_name.lower().replace(" ", "-")[:50]
+    slug = base_slug
+    counter = 1
+    while True:
+        existing_slug = await db.execute(select(Organization).where(Organization.slug == slug))
+        if not existing_slug.scalar_one_or_none():
+            break
+        slug = f"{base_slug}-{counter}"
+        counter += 1
     org = Organization(name=req.org_name, slug=slug)
     db.add(org)
     await db.flush()
