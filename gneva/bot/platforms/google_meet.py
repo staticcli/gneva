@@ -75,9 +75,8 @@ class GoogleMeetDriver(BasePlatformDriver):
                     name_entered = True
                     break
 
-        # Turn off mic and camera on preview screen
+        # Turn off mic on preview screen (camera stays ON for avatar)
         await self._click_if_visible(S["mic_toggle"], timeout=2000)
-        await self._click_if_visible(S["cam_toggle"], timeout=2000)
         await asyncio.sleep(1)
 
         # Click "Ask to join" or "Join now"
@@ -90,9 +89,8 @@ class GoogleMeetDriver(BasePlatformDriver):
         # Wait for lobby admission (up to configured timeout, checked externally)
         await asyncio.sleep(3)
 
-        # Ensure muted and camera off after joining
+        # Ensure muted after joining (camera stays ON for avatar)
         await self.ensure_muted()
-        await self.ensure_camera_off()
 
         self.logger.info("Successfully joined Google Meet")
         return True

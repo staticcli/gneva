@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 
 from gneva.bot.audio_capture import AudioCapture
+from gneva.bot.avatar import get_avatar_inject_js, get_speaking_js
 from gneva.bot.platforms import detect_platform, get_driver
 
 logger = logging.getLogger(__name__)
@@ -116,7 +117,6 @@ class BrowserBot:
             headless=True,
             args=[
                 "--use-fake-ui-for-media-stream",
-                "--use-fake-device-for-media-stream",
                 "--disable-web-security",
                 "--autoplay-policy=no-user-gesture-required",
                 "--disable-features=WebRtcHideLocalIpsWithMdns",
@@ -142,6 +142,10 @@ class BrowserBot:
         await self._context.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', { get: () => false });
         """)
+
+        # Inject avatar system — overrides getUserMedia to serve canvas-based face
+        avatar_js = get_avatar_inject_js()
+        await self._context.add_init_script(avatar_js)
 
         self._page = await self._context.new_page()
         self._driver = get_driver(self.platform, self._page, self.bot_name)
@@ -379,6 +383,83 @@ class BrowserBot:
             pass
 
         logger.info(f"Bot {self.bot_id}: cleaned up")
+
+    async def speak(self, text: str):
+        """Synthesize speech via TTS and play it into the meeting.
+
+        This triggers the avatar lip-sync animation and injects
+        audio into the meeting via a MediaStream audio source.
+        """
+        if not self._page or self.state not in (BotState.IN_MEETING, BotState.RECORDING):
+            logger.warning(f"Bot {self.bot_id}: cannot speak — not in meeting")
+            return
+
+        try:
+            from gneva.services.tts import TTSService
+            tts = TTSService()
+            audio_bytes = await tts.synthesize(text)
+
+            # Convert WAV to base64 for browser injection
+            import base64
+            audio_b64 = base64.b64encode(audio_bytes).decode()
+
+            # Start lip-sync animation
+            cdp = await self._page.context.new_cdp_session(self._page)
+            await cdp.send("Runtime.evaluate", {
+                "expression": get_speaking_js(True)
+            })
+
+            # Inject and play audio in the browser (feeds into the meeting audio)
+            play_js = f"""
+            (async () => {{
+                try {{
+                    const b64 = '{audio_b64}';
+                    const binary = atob(b64);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    const audioCtx = new AudioContext({{ sampleRate: 22050 }});
+                    const buffer = await audioCtx.decodeAudioData(bytes.buffer);
+                    const source = audioCtx.createBufferSource();
+                    source.buffer = buffer;
+
+                    // Create a MediaStreamDestination to feed into getUserMedia
+                    const dest = audioCtx.createMediaStreamDestination();
+                    source.connect(dest);
+                    source.connect(audioCtx.destination);  // also play locally for debugging
+                    source.start();
+
+                    // Return duration so we know when to stop lip-sync
+                    window.__gnevaLastSpeechDuration = buffer.duration;
+                }} catch(e) {{
+                    console.error('[Gneva] Speech playback error:', e);
+                }}
+            }})();
+            """
+            await cdp.send("Runtime.evaluate", {"expression": play_js})
+
+            # Wait for speech to finish, then stop lip-sync
+            # Get the duration from the browser
+            dur_result = await cdp.send("Runtime.evaluate", {
+                "expression": "window.__gnevaLastSpeechDuration || 3",
+                "returnByValue": True,
+            })
+            duration = dur_result.get("result", {}).get("value", 3)
+            await asyncio.sleep(duration + 0.3)
+
+            await cdp.send("Runtime.evaluate", {
+                "expression": get_speaking_js(False)
+            })
+            logger.info(f"Bot {self.bot_id}: spoke for {duration:.1f}s — '{text[:50]}...'")
+        except Exception as e:
+            logger.error(f"Bot {self.bot_id}: speak error: {e}", exc_info=True)
+            # Make sure lip-sync stops even on error
+            try:
+                cdp = await self._page.context.new_cdp_session(self._page)
+                await cdp.send("Runtime.evaluate", {
+                    "expression": get_speaking_js(False)
+                })
+            except Exception:
+                pass
 
     def to_dict(self) -> dict:
         """Return bot status as a dict."""

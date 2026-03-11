@@ -76,9 +76,8 @@ class ZoomDriver(BasePlatformDriver):
         if await self._fill_if_visible(S["name_input"], self.bot_name, timeout=5000):
             self.logger.info(f"Entered name: {self.bot_name}")
 
-        # Mute + camera off on preview screen
+        # Mute mic on preview screen (camera stays ON for avatar)
         await self._click_if_visible(S["preview_mute"], timeout=2000)
-        await self._click_if_visible(S["preview_camera_off"], timeout=2000)
 
         # Click join
         if not await self._click_if_visible(S["join_button"], timeout=5000):
@@ -106,7 +105,6 @@ class ZoomDriver(BasePlatformDriver):
 
         await asyncio.sleep(2)
         await self.ensure_muted()
-        await self.ensure_camera_off()
 
         self.logger.info("Successfully joined Zoom meeting")
         return True

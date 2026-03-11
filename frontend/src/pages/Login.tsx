@@ -39,8 +39,8 @@ export default function Login({ onLogin }: Props) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gneva-50">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-gneva-800 mb-2">Gneva</h1>
-        <p className="text-gray-500 mb-8">Your AI team member</p>
+        <h1 className="text-3xl font-bold text-gneva-800 mb-2 text-center">Gneva</h1>
+        <p className="text-gray-500 mb-8 text-center">Your AI team member</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
