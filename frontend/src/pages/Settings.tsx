@@ -1,11 +1,19 @@
-import { useState } from 'react'
-import { Calendar, Bell, MessageSquare, Bot, Cpu, Check, ExternalLink } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Calendar, Bell, MessageSquare, Bot, Cpu, Check, ExternalLink, Mic, Trash2, Star, Play, Plus, Volume2 } from 'lucide-react'
+import { api } from '../api'
 
 interface ToggleProps {
   enabled: boolean;
   onChange: (val: boolean) => void;
   label: string;
   description?: string;
+}
+
+interface Voice {
+  id: string;
+  name: string;
+  provider: string;
+  is_default: boolean;
 }
 
 function Toggle({ enabled, onChange, label, description }: ToggleProps) {
@@ -52,7 +60,19 @@ export default function Settings() {
   // AI
   const [aiBackend, setAiBackend] = useState('claude');
 
+  // Voices
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [showAddVoice, setShowAddVoice] = useState(false);
+  const [newVoiceId, setNewVoiceId] = useState('');
+  const [newVoiceName, setNewVoiceName] = useState('');
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const [saved, setSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.voices().then(r => setVoices(r.voices || [])).catch(console.error);
+  }, []);
 
   const showSaved = (section: string) => {
     setSaved(section);
@@ -63,6 +83,64 @@ export default function Settings() {
     showSaved(section);
   };
 
+  const handleAddVoice = async () => {
+    if (!newVoiceId.trim() || !newVoiceName.trim()) return;
+    try {
+      const r = await api.addVoice(newVoiceId.trim(), newVoiceName.trim());
+      setVoices(r.voices || []);
+      setNewVoiceId('');
+      setNewVoiceName('');
+      setShowAddVoice(false);
+      showSaved('voices');
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteVoice = async (voiceId: string) => {
+    try {
+      const r = await api.deleteVoice(voiceId);
+      setVoices(r.voices || []);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleSetDefault = async (voiceId: string) => {
+    try {
+      const r = await api.updateVoice(voiceId, { is_default: true });
+      setVoices(r.voices || []);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handlePreview = async (voiceId: string) => {
+    // B10 fix: stop any currently playing preview
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPreviewingVoice(voiceId);
+    try {
+      const r = await api.previewVoice(voiceId);
+      if (r.error) {
+        alert(`Preview failed: ${r.error}`);
+        return;
+      }
+      if (r.audio) {
+        const audio = new Audio(`data:audio/wav;base64,${r.audio}`);
+        audioRef.current = audio;
+        audio.play();
+        audio.onended = () => setPreviewingVoice(null);
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      if (!audioRef.current) setPreviewingVoice(null);
+    }
+  };
+
   return (
     <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-8">
@@ -70,6 +148,132 @@ export default function Settings() {
       </div>
 
       <div className="space-y-6">
+        {/* Voice Management */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <Volume2 size={20} className="text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Voice Management</h3>
+                <p className="text-xs text-gray-400">Configure ElevenLabs voices for Gneva</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddVoice(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <Plus size={14} />
+              Add Voice
+            </button>
+          </div>
+
+          {/* Add voice form */}
+          {showAddVoice && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Voice Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sarah"
+                    value={newVoiceName}
+                    onChange={e => setNewVoiceName(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">ElevenLabs Voice ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. OUBnvvuqEKdDWtapoJFn"
+                    value={newVoiceId}
+                    onChange={e => setNewVoiceId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => { setShowAddVoice(false); setNewVoiceId(''); setNewVoiceName(''); }}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddVoice}
+                  disabled={!newVoiceId.trim() || !newVoiceName.trim()}
+                  className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Voice list */}
+          <div className="space-y-2">
+            {voices.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">No voices configured</p>
+            ) : (
+              voices.map(v => (
+                <div
+                  key={v.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                    v.is_default ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      v.is_default ? 'bg-indigo-200 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      <Mic size={14} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-800">{v.name}</span>
+                        {v.is_default && (
+                          <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-semibold rounded-full uppercase tracking-wide">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 font-mono">{v.id}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handlePreview(v.id)}
+                      disabled={previewingVoice === v.id}
+                      title="Preview voice"
+                      className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Play size={14} className={previewingVoice === v.id ? 'animate-pulse text-indigo-600' : ''} />
+                    </button>
+                    {!v.is_default && (
+                      <button
+                        onClick={() => handleSetDefault(v.id)}
+                        title="Set as default"
+                        className="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                      >
+                        <Star size={14} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteVoice(v.id)}
+                      title="Remove voice"
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* Calendar Integration */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-4">

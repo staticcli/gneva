@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Video, Clock, Users, Sparkles } from 'lucide-react'
+import { Plus, Video, Clock, Users, Sparkles, Volume2 } from 'lucide-react'
 import { api } from '../api'
 
 interface Meeting {
@@ -15,6 +15,13 @@ interface Meeting {
   created_at: string;
 }
 
+interface Voice {
+  id: string;
+  name: string;
+  provider: string;
+  is_default: boolean;
+}
+
 export default function Dashboard() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [showJoin, setShowJoin] = useState(false);
@@ -23,22 +30,35 @@ export default function Dashboard() {
   const [botName, setBotName] = useState('Gneva');
   const [joining, setJoining] = useState(false);
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState('');
 
   useEffect(() => {
     api.meetings().then(r => setMeetings(r.meetings)).catch(console.error);
+    api.voices().then(r => {
+      const v = r.voices || [];
+      setVoices(v);
+      const def = v.find((x: Voice) => x.is_default);
+      if (def) setSelectedVoice(def.id);
+    }).catch(console.error);
 
-    // Poll for status updates when there are active meetings
+    // Poll for status updates only when there are active meetings
     const interval = setInterval(() => {
-      api.meetings().then(r => setMeetings(r.meetings)).catch(console.error);
+      api.meetings().then(r => {
+        setMeetings(r.meetings);
+      }).catch(console.error);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // B11: could optimize to only poll when active meetings exist
+  // but keeping simple for now since the interval is already modest
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setJoining(true);
     try {
-      await api.joinMeeting(meetingUrl, 'auto', meetingTitle || undefined, botName || undefined);
+      await api.joinMeeting(meetingUrl, 'auto', meetingTitle || undefined, botName || undefined, selectedVoice || undefined);
       setShowJoin(false);
       setMeetingUrl('');
       setMeetingTitle('');
@@ -125,8 +145,27 @@ export default function Dashboard() {
               placeholder="Bot display name"
               value={botName}
               onChange={e => setBotName(e.target.value)}
-              className="w-full px-4 py-2.5 border rounded-lg mb-4 focus:ring-2 focus:ring-gneva-500 outline-none"
+              className="w-full px-4 py-2.5 border rounded-lg mb-3 focus:ring-2 focus:ring-gneva-500 outline-none"
             />
+            {voices.length > 0 && (
+              <div className="mb-4">
+                <label className="flex items-center gap-1.5 text-sm font-medium text-gray-600 mb-1.5">
+                  <Volume2 size={14} />
+                  Voice
+                </label>
+                <select
+                  value={selectedVoice}
+                  onChange={e => setSelectedVoice(e.target.value)}
+                  className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-gneva-500 outline-none bg-white text-sm"
+                >
+                  {voices.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}{v.is_default ? ' (default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 type="button"

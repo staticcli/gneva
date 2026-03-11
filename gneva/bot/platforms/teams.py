@@ -93,6 +93,13 @@ class TeamsDriver(BasePlatformDriver):
         # Dismiss any popups
         await self._click_if_visible(S["dismiss"])
 
+        # Ensure camera is ON on pre-join screen so Teams calls getUserMedia({video: true})
+        # Our avatar JS intercepts this and serves the canvas stream
+        cam_off_sel = "button[aria-label*='Turn on camera' i], button[aria-label*='Turn camera on' i], toggle-button[aria-label*='Camera' i][aria-checked='false']"
+        if await self._click_if_visible(cam_off_sel, timeout=2000):
+            self.logger.info("Turned camera ON (for avatar injection)")
+            await asyncio.sleep(1)
+
         # Enter bot name
         if await self._fill_if_visible(S["name_input"], self.bot_name, timeout=5000):
             self.logger.info(f"Entered name: {self.bot_name}")
@@ -119,6 +126,13 @@ class TeamsDriver(BasePlatformDriver):
         if await self._is_visible(S["mic_on_indicator"], timeout=1000):
             await self._click_if_visible(S["mic_button"])
             self.logger.info("Muted microphone")
+
+    async def ensure_unmuted(self):
+        """Unmute microphone — click the unmute button if currently muted."""
+        unmute_sel = "button[aria-label*='Unmute' i], button[aria-label*='Turn on microphone' i]"
+        if await self._is_visible(unmute_sel, timeout=1000):
+            await self._click_if_visible(unmute_sel)
+            self.logger.info("Unmuted microphone")
 
     async def ensure_camera_off(self):
         if await self._is_visible(S["cam_on_indicator"], timeout=1000):
@@ -172,6 +186,66 @@ class TeamsDriver(BasePlatformDriver):
 
     async def is_in_lobby(self) -> bool:
         return await self._is_visible(S["lobby"], timeout=500)
+
+    async def enable_live_captions(self):
+        """Turn on Teams live captions so we can read what participants say."""
+        # Try the "More" / "..." menu first (captions is usually there)
+        more_sel = (
+            "button[aria-label*='More actions' i], button[aria-label*='More' i], "
+            "button[id*='more-button' i], button[data-tid='more-button'], "
+            "button[aria-label*='more options' i]"
+        )
+        if await self._click_if_visible(more_sel, timeout=3000):
+            self.logger.info("Opened 'More actions' menu")
+            await asyncio.sleep(1)
+
+            # Look for "Turn on live captions" or "Language and speech" > captions
+            captions_sel = (
+                "button:has-text('Turn on live captions'), "
+                "button:has-text('Live captions'), "
+                "span:has-text('Turn on live captions'), "
+                "li:has-text('Turn on live captions'), "
+                "div[role='menuitem']:has-text('captions'), "
+                "button[aria-label*='captions' i], "
+                "div[role='menuitemcheckbox']:has-text('Live captions'), "
+                "span:has-text('Live captions')"
+            )
+            if await self._click_if_visible(captions_sel, timeout=3000):
+                self.logger.info("Enabled live captions")
+                await asyncio.sleep(1)
+                # Dismiss any "captions language" dialog
+                await self._click_if_visible(
+                    "button:has-text('Confirm'), button:has-text('Got it'), button:has-text('OK')",
+                    timeout=2000,
+                )
+                return True
+            else:
+                self.logger.warning("Could not find 'Turn on live captions' in menu")
+                # Close the menu by pressing Escape
+                try:
+                    await self.page.keyboard.press("Escape")
+                except Exception:
+                    pass
+        else:
+            self.logger.warning("Could not find 'More actions' button for captions")
+
+        # Fallback: try direct caption button (some Teams versions show it in toolbar)
+        direct_sel = (
+            "button[aria-label*='caption' i], "
+            "button[aria-label*='Caption' i], "
+            "button[data-tid='toggle-captions']"
+        )
+        if await self._click_if_visible(direct_sel, timeout=2000):
+            self.logger.info("Enabled live captions (direct button)")
+            await asyncio.sleep(1)
+            await self._click_if_visible(
+                "button:has-text('Confirm'), button:has-text('Got it')",
+                timeout=2000,
+            )
+            return True
+
+        self.logger.warning("Could not enable live captions")
+        return False
 
     async def leave(self):
         try:

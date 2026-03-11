@@ -25,6 +25,11 @@ class BasePlatformDriver(ABC):
         ...
 
     @abstractmethod
+    async def ensure_unmuted(self):
+        """Unmute the microphone."""
+        ...
+
+    @abstractmethod
     async def ensure_camera_off(self):
         """Turn off the camera."""
         ...

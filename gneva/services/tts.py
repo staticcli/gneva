@@ -1,4 +1,4 @@
-"""Text-to-speech service — Piper (local) and ElevenLabs (cloud) backends."""
+"""Text-to-speech service — edge-tts (free), Piper (local), and ElevenLabs (cloud) backends."""
 
 import io
 import logging
@@ -15,15 +15,32 @@ settings = get_settings()
 
 ELEVENLABS_API = "https://api.elevenlabs.io/v1"
 
+# Edge-TTS voice mapping — natural-sounding Microsoft voices (free, no API key)
+EDGE_TTS_VOICES = {
+    "default": "en-US-AriaNeural",       # Female, warm
+    "patel": "en-IN-NeerjaNeural",        # Indian female
+    "emma": "en-US-JennyNeural",          # American female
+}
+
 
 class TTSService:
-    """Synthesize speech from text using Piper or ElevenLabs."""
+    """Synthesize speech from text using edge-tts, Piper, or ElevenLabs."""
+
+    # Track consecutive ElevenLabs failures to auto-switch to edge-tts
+    _elevenlabs_failures = 0
 
     def __init__(self):
-        self._backend = settings.tts_backend  # "piper" or "elevenlabs"
+        self._backend = settings.tts_backend  # "piper", "elevenlabs", or "edge"
         self._piper_model = settings.piper_model_path
         self._el_key = settings.elevenlabs_api_key
         self._el_voice = settings.elevenlabs_voice_id
+        self._edge_voice = EDGE_TTS_VOICES["default"]
+
+        # Auto-switch: if ElevenLabs has failed 5+ times consecutively, skip it
+        # (resets on success, so upgrading the plan auto-recovers)
+        if self._backend == "elevenlabs" and TTSService._elevenlabs_failures >= 5:
+            logger.info("ElevenLabs failed %d times, using edge-tts", TTSService._elevenlabs_failures)
+            self._backend = "edge"
 
     async def synthesize(self, text: str, voice: str = "gneva") -> bytes:
         """Synthesize text to WAV audio bytes.
@@ -33,7 +50,7 @@ class TTSService:
             voice: Voice identifier (used by ElevenLabs; Piper uses model path).
 
         Returns:
-            Raw WAV audio bytes.
+            Raw audio bytes (MP3 for edge-tts, WAV for others).
         """
         if not text or not text.strip():
             raise ValueError("Cannot synthesize empty text")
@@ -43,9 +60,40 @@ class TTSService:
         if len(text) > 5000:
             raise ValueError("Text exceeds maximum length of 5000 characters")
 
-        if self._backend == "elevenlabs":
-            return await self._synthesize_elevenlabs(text, voice)
-        return await self._synthesize_piper(text)
+        if self._backend == "elevenlabs" and self._el_key:
+            try:
+                result = await self._synthesize_elevenlabs(text, voice)
+                TTSService._elevenlabs_failures = 0  # Reset on success
+                return result
+            except Exception as e:
+                TTSService._elevenlabs_failures += 1
+                logger.warning(f"ElevenLabs failed ({e}), falling back to edge-tts (failure #{TTSService._elevenlabs_failures})")
+                return await self._synthesize_edge(text)
+        elif self._backend == "edge" or self._backend == "elevenlabs":
+            return await self._synthesize_edge(text)
+        else:
+            try:
+                return await self._synthesize_piper(text)
+            except Exception as e:
+                logger.warning(f"Piper failed ({e}), falling back to edge-tts")
+                return await self._synthesize_edge(text)
+
+    async def _synthesize_edge(self, text: str) -> bytes:
+        """Synthesize using Microsoft Edge TTS (free, no API key required)."""
+        import edge_tts
+
+        voice = self._edge_voice
+        communicate = edge_tts.Communicate(text, voice)
+        audio_data = b""
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_data += chunk["data"]
+
+        if not audio_data:
+            raise RuntimeError("edge-tts returned empty audio")
+
+        logger.debug("edge-tts synthesized %d bytes with voice %s", len(audio_data), voice)
+        return audio_data
 
     async def _synthesize_piper(self, text: str) -> bytes:
         """Synthesize using local Piper TTS (subprocess call)."""

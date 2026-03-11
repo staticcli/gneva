@@ -101,6 +101,11 @@ class GoogleMeetDriver(BasePlatformDriver):
             await self._click_if_visible(S["mic_button"])
             self.logger.info("Muted microphone")
 
+    async def ensure_unmuted(self):
+        if await self._is_visible("[aria-label*='Turn on microphone' i]", timeout=1000):
+            await self._click_if_visible(S["mic_button"])
+            self.logger.info("Unmuted microphone")
+
     async def ensure_camera_off(self):
         if await self._is_visible("[aria-label*='Turn off camera' i]", timeout=1000):
             await self._click_if_visible(S["cam_button"])

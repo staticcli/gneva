@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     tts_backend: str = "piper"  # piper or elevenlabs
     piper_model_path: str = ""
 
+    # SadTalker (talking head avatar)
+    sadtalker_checkpoint_dir: str = ""
+    sadtalker_enabled: bool = True  # auto-disabled if checkpoints not found
+
     # Scheduler (Stage 5)
     scheduler_enabled: bool = True
     weekly_digest_day: int = 4  # Friday (0=Monday)

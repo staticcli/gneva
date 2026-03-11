@@ -47,6 +47,7 @@ class BotJoinRequest(BaseModel):
     platform: str = "auto"  # "auto", "zoom", "google_meet", "teams"
     meeting_title: str | None = None
     bot_name: str | None = None  # override default name
+    voice_id: str | None = None  # ElevenLabs voice ID for TTS
 
 
 class BotJoinResponse(BaseModel):
@@ -69,6 +70,15 @@ async def join_meeting(
 ):
     """Send Gneva to join a meeting."""
     manager = get_bot_manager()
+
+    # S5 fix: Validate meeting_url against known platforms to prevent SSRF
+    from urllib.parse import urlparse
+    parsed = urlparse(req.meeting_url)
+    if parsed.scheme not in ("https", "http"):
+        raise HTTPException(status_code=400, detail="Meeting URL must use https")
+    allowed_hosts = ["zoom.us", "meet.google.com", "teams.microsoft.com", "teams.live.com", "teams.cloud.microsoft"]
+    if not any(parsed.hostname and (parsed.hostname == h or parsed.hostname.endswith("." + h)) for h in allowed_hosts):
+        raise HTTPException(status_code=400, detail="Unsupported meeting platform URL")
 
     # Auto-detect platform from URL
     from gneva.bot.platforms import detect_platform
@@ -112,6 +122,7 @@ async def join_meeting(
             meeting_id=meeting_id_str,
             bot_name=req.bot_name or settings.bot_name,
             on_complete=on_bot_complete,
+            voice_id=req.voice_id,
         )
     except RuntimeError as e:
         meeting.status = "failed"
@@ -122,6 +133,7 @@ async def join_meeting(
         raise HTTPException(status_code=500, detail="Bot launch failed")
 
     meeting.bot_id = bot_id
+    await db.commit()  # B6 fix: ensure bot_id is persisted
 
     return BotJoinResponse(
         meeting_id=meeting_id_str,
@@ -157,6 +169,14 @@ async def leave_meeting(
 
     if not bot_id:
         raise HTTPException(status_code=400, detail="Provide meeting_id or bot_id")
+
+    # S8 fix: verify bot belongs to user's org when bot_id provided directly
+    if req.bot_id and not req.meeting_id:
+        result = await db.execute(
+            select(Meeting).where(Meeting.bot_id == bot_id, Meeting.org_id == user.org_id)
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Bot not found")
 
     try:
         await manager.leave(bot_id)
@@ -207,3 +227,54 @@ async def list_active_bots(
     # Filter to only bots belonging to this org
     org_bots = [b for b in all_bots if b.get("bot_id") in org_bot_ids]
     return {"bots": org_bots}
+
+
+@router.get("/debug/{bot_id}")
+async def bot_debug(
+    bot_id: str,
+    user: User = Depends(get_current_user),
+):
+    """Debug endpoint — dump caption DOM and JS state from the bot's browser."""
+    manager = get_bot_manager()
+    bot = manager._bots.get(bot_id)
+    if not bot or not bot._page:
+        raise HTTPException(status_code=404, detail="Bot not found or no page")
+
+    try:
+        result = await bot._page.evaluate("""
+            (() => {
+                const info = {};
+
+                // Get caption-related elements
+                const captionEls = document.querySelectorAll('[data-tid*="caption"], [class*="caption" i], [class*="Caption"]');
+                info.captionElementCount = captionEls.length;
+                info.captionElements = [];
+                captionEls.forEach((el, i) => {
+                    if (i < 20) {
+                        info.captionElements.push({
+                            tag: el.tagName,
+                            classes: el.className ? el.className.substring(0, 200) : '',
+                            dataTid: el.getAttribute('data-tid') || '',
+                            text: (el.textContent || '').substring(0, 200),
+                            childCount: el.children.length,
+                            innerHTML: el.innerHTML.substring(0, 500)
+                        });
+                    }
+                });
+
+                // Check pending captions
+                info.pendingSegments = window.__gnevaCaptions ? window.__gnevaCaptions.segments.length : -1;
+
+                // Get the full visible caption text
+                const captionPanel = document.querySelector(
+                    '[data-tid="closed-captions-renderer"], [class*="captionPanel" i], [class*="closedCaptions" i]'
+                );
+                info.captionPanelFound = !!captionPanel;
+                info.captionPanelText = captionPanel ? captionPanel.innerText.substring(0, 1000) : 'NOT FOUND';
+
+                return info;
+            })()
+        """)
+        return result
+    except Exception as e:
+        return {"error": str(e)}

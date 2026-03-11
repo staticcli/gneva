@@ -65,6 +65,7 @@ class BotManager:
         meeting_id: str | None = None,
         bot_name: str | None = None,
         on_complete=None,
+        voice_id: str | None = None,
     ) -> str:
         """
         Launch a bot to join a meeting. Returns the bot_id.
@@ -74,6 +75,7 @@ class BotManager:
             meeting_id: Database meeting ID to associate
             bot_name: Override the default bot name
             on_complete: async callback(bot_id, meeting_id, audio_path, success)
+            voice_id: ElevenLabs voice ID for TTS
         """
         if not self._started:
             await self.start()
@@ -93,6 +95,7 @@ class BotManager:
             max_duration=self.max_duration,
             meeting_id=meeting_id,
             on_complete=on_complete,
+            voice_id=voice_id,
         )
         bot.on_state_change = self._on_bot_state_change
 

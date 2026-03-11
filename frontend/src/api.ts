@@ -49,8 +49,8 @@ export const api = {
   meetingDecisions: (id: string) => request(`/api/meetings/${id}/decisions`),
 
   // Bot
-  joinMeeting: (meeting_url: string, _platform: string, title?: string, bot_name?: string) =>
-    request('/api/bot/join', { method: 'POST', body: JSON.stringify({ meeting_url, platform: 'auto', meeting_title: title, bot_name }) }),
+  joinMeeting: (meeting_url: string, _platform: string, title?: string, bot_name?: string, voice_id?: string) =>
+    request('/api/bot/join', { method: 'POST', body: JSON.stringify({ meeting_url, platform: 'auto', meeting_title: title, bot_name, voice_id }) }),
   leaveMeeting: (bot_id: string) =>
     request('/api/bot/leave', { method: 'POST', body: JSON.stringify({ bot_id }) }),
   botStatus: (bot_id: string) => request(`/api/bot/status/${bot_id}`),
@@ -101,6 +101,18 @@ export const api = {
     }
     return res.json();
   },
+
+  // Voices
+  voices: () => request('/api/settings/voices'),
+  addVoice: (voice_id: string, name: string, provider = 'elevenlabs') =>
+    request('/api/settings/voices', { method: 'POST', body: JSON.stringify({ voice_id, name, provider }) }),
+  updateVoice: (voice_id: string, update: { is_default?: boolean; name?: string }) =>
+    request(`/api/settings/voices/${voice_id}`, { method: 'PATCH', body: JSON.stringify(update) }),
+  deleteVoice: (voice_id: string) =>
+    request(`/api/settings/voices/${voice_id}`, { method: 'DELETE' }),
+  previewVoice: (voice_id: string) =>
+    request(`/api/settings/voices/${voice_id}/preview`, { method: 'POST' }),
+  settings: () => request('/api/settings/'),
 
   // Calendar
   calendarEvents: () => request('/api/calendar/events'),

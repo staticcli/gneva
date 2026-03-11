@@ -38,6 +38,7 @@ class BrowserBot:
         max_duration: int = 14400,
         meeting_id: str | None = None,
         on_complete=None,
+        voice_id: str | None = None,
     ):
         self.bot_id = str(uuid.uuid4())
         self.meeting_url = meeting_url
@@ -48,6 +49,7 @@ class BrowserBot:
         self.max_duration = max_duration
         self.meeting_id = meeting_id
         self.on_complete = on_complete  # async callback(bot_id, meeting_id, audio_path, success)
+        self.voice_id = voice_id  # ElevenLabs voice ID for TTS
         self.on_state_change = None  # async callback(bot_id, meeting_id, new_state)
 
         self._state = BotState.INITIALIZING
@@ -62,6 +64,7 @@ class BrowserBot:
         self._page = None
         self._driver = None
         self._audio_capture: AudioCapture | None = None
+        self._conversation = None
         self._stop_event = asyncio.Event()
 
     @property
@@ -113,11 +116,13 @@ class BrowserBot:
         """Create a browser context with the right flags for meeting audio."""
         self.state = BotState.INITIALIZING
 
+        # Use headed mode on Windows for speech recognition + audio
+        import sys
+        use_headless = sys.platform != "win32"
         self._browser = await playwright.chromium.launch(
-            headless=True,
+            headless=use_headless,
             args=[
-                "--use-fake-ui-for-media-stream",
-                "--disable-web-security",
+                "--use-fake-ui-for-media-stream",       # Auto-approve mic/camera permission prompts
                 "--autoplay-policy=no-user-gesture-required",
                 "--disable-features=WebRtcHideLocalIpsWithMdns",
                 "--no-sandbox",
@@ -144,8 +149,75 @@ class BrowserBot:
         """)
 
         # Inject avatar system — overrides getUserMedia to serve canvas-based face
-        avatar_js = get_avatar_inject_js()
+        face_b64 = None
+        try:
+            from gneva.bot.talking_head import get_talking_head_service
+            ths = get_talking_head_service()
+            # Use voice_id if set, otherwise fall back to default voice's face
+            voice_for_face = self.voice_id
+            if not voice_for_face:
+                # Get default voice from settings API voice store
+                from gneva.api.settings import _DEFAULT_VOICES
+                default_v = next((v for v in _DEFAULT_VOICES if v.get("is_default")), None)
+                if default_v:
+                    voice_for_face = default_v["id"]
+            face_b64 = ths.get_face_b64(voice_for_face)
+            if face_b64:
+                logger.info(f"Bot {self.bot_id}: loaded face image for voice {voice_for_face}")
+            else:
+                # Last resort: get any available face
+                face_b64 = ths.get_face_b64(None)
+                if face_b64:
+                    logger.info(f"Bot {self.bot_id}: loaded fallback face image")
+        except Exception as e:
+            logger.warning(f"Bot {self.bot_id}: could not load face image: {e}")
+        avatar_js = get_avatar_inject_js(face_image_b64=face_b64)
         await self._context.add_init_script(avatar_js)
+
+        # Inject audio capture hook EARLY (init_script) so it intercepts
+        # RTCPeerConnection BEFORE Teams creates its peer connections.
+        # The WebSocket URL is set later via page.evaluate once the WS server starts.
+        await self._context.add_init_script("""
+        (function() {
+            // Hook RTCPeerConnection to capture incoming audio tracks
+            const OrigRTC = window.RTCPeerConnection;
+            if (!OrigRTC) return;
+
+            window.__gnevaIncomingAudioTracks = [];
+
+            window.RTCPeerConnection = function(...args) {
+                const pc = new OrigRTC(...args);
+
+                pc.addEventListener('track', (event) => {
+                    if (event.track.kind === 'audio' && event.streams.length > 0) {
+                        console.log('[Gneva Audio] Captured incoming WebRTC audio track');
+                        window.__gnevaIncomingAudioTracks.push(event.streams[0]);
+
+                        // Connect to audio capture if ready
+                        if (window.__gnevaAudioCaptureMerger && window.__gnevaAudioCaptureCtx) {
+                            try {
+                                const src = window.__gnevaAudioCaptureCtx.createMediaStreamSource(event.streams[0]);
+                                src.connect(window.__gnevaAudioCaptureMerger);
+                                console.log('[Gneva Audio] Connected incoming track to capture pipeline');
+                            } catch(e) {
+                                console.warn('[Gneva Audio] Track connect failed:', e.message);
+                            }
+                        }
+                    }
+                });
+
+                return pc;
+            };
+            window.RTCPeerConnection.prototype = OrigRTC.prototype;
+            Object.getOwnPropertyNames(OrigRTC).forEach(prop => {
+                if (prop !== 'prototype' && prop !== 'length' && prop !== 'name') {
+                    try { window.RTCPeerConnection[prop] = OrigRTC[prop]; } catch(e) {}
+                }
+            });
+
+            console.log('[Gneva Audio] RTCPeerConnection hook installed (early)');
+        })();
+        """)
 
         self._page = await self._context.new_page()
         self._driver = get_driver(self.platform, self._page, self.bot_name)
@@ -158,6 +230,16 @@ class BrowserBot:
 
         success = await self._driver.join(self.meeting_url)
         if not success:
+            # Save diagnostic screenshot before cleanup
+            try:
+                if self._page:
+                    os.makedirs(os.path.join(self.audio_dir, "diagnostics"), exist_ok=True)
+                    spath = os.path.join(self.audio_dir, "diagnostics", f"{self.bot_id}_join_failed.png")
+                    await self._page.screenshot(path=spath, full_page=True)
+                    logger.info(f"Bot {self.bot_id}: join-fail screenshot saved to {spath}")
+                    logger.info(f"Bot {self.bot_id}: page URL at failure: {self._page.url}")
+            except Exception:
+                pass
             self.state = BotState.FAILED
             self.error = "Failed to join meeting"
             return
@@ -176,6 +258,63 @@ class BrowserBot:
             await asyncio.sleep(5)
 
         self.state = BotState.IN_MEETING
+
+        # Start conversation engine for live responses
+        try:
+            from gneva.bot.conversation import ConversationEngine
+            self._conversation = ConversationEngine(bot=self)
+            await self._conversation.start()
+            await self._conversation.greet()
+            logger.info(f"Bot {self.bot_id}: conversation engine started")
+        except Exception as e:
+            logger.warning(f"Bot {self.bot_id}: conversation engine failed to start: {e}")
+
+        # Enable live captions so we can "hear" what people say
+        try:
+            if hasattr(self._driver, 'enable_live_captions'):
+                await self._driver.enable_live_captions()
+                logger.info(f"Bot {self.bot_id}: live captions enabled")
+        except Exception as e:
+            logger.warning(f"Bot {self.bot_id}: could not enable live captions: {e}")
+
+        # Keep chat pane open so we can monitor messages
+        try:
+            await self._driver._click_if_visible(
+                "button[aria-label*='Chat' i], button[id*='chat' i], button[aria-label*='Show conversation' i]",
+                timeout=3000
+            )
+            logger.info(f"Bot {self.bot_id}: opened chat pane")
+        except Exception:
+            pass
+
+        # Force-inject avatar stream into self-video element (belt-and-suspenders)
+        try:
+            await self._page.evaluate("""
+                (() => {
+                    if (!window.__gnevaAvatar) {
+                        console.warn('[Gneva] Avatar system not found');
+                        return;
+                    }
+                    // Find self-view video elements and replace their srcObject
+                    const selfVideos = document.querySelectorAll(
+                        'video[id*="self" i], video[id*="local" i], video[class*="self" i], ' +
+                        'video[data-tid*="self" i], video[data-cid*="self" i]'
+                    );
+                    if (selfVideos.length === 0) {
+                        console.log('[Gneva Avatar] No self-video elements found (may be thumbnailed)');
+                    }
+                    selfVideos.forEach(v => {
+                        const canvas = document.querySelector('canvas');
+                        if (canvas) {
+                            const stream = canvas.captureStream(30);
+                            v.srcObject = stream;
+                            console.log('[Gneva Avatar] Injected canvas stream into self-video element');
+                        }
+                    });
+                })();
+            """)
+        except Exception as e:
+            logger.debug(f"Bot {self.bot_id}: avatar post-injection: {e}")
 
         # Post consent message
         try:
@@ -208,6 +347,123 @@ class BrowserBot:
         self.state = BotState.RECORDING
         logger.info(f"Bot {self.bot_id}: recording started, audio WS on port {self._audio_capture.port}")
 
+        # Inject listening system for conversation engine
+        # Three methods: 1) Route incoming WebRTC audio → Web Speech API for voice
+        #                2) Scrape Teams captions    3) Scrape Teams chat
+        if self._conversation:
+            caption_js = """
+            (function() {
+                window.__gnevaCaptions = { segments: [] };
+                const seenTexts = new Set();
+                let lastCaptionSnapshot = '';
+
+                // === TEAMS CAPTION SCRAPER ===
+                // Exact DOM structure (from live inspection):
+                //   [data-tid="closed-caption-v2-virtual-list-content"]
+                //     > flex containers, each containing:
+                //       > speaker name span (sibling before [data-tid="closed-caption-text"])
+                //       > [data-tid="closed-caption-text"] span with the actual text
+
+                function scrapeCaptions() {
+                    const textEls = document.querySelectorAll('[data-tid="closed-caption-text"]');
+                    if (textEls.length === 0) return;
+
+                    textEls.forEach(textEl => {
+                        const text = (textEl.textContent || '').trim();
+                        if (!text || text.length < 3) return;
+
+                        // Walk up to find the caption entry container and extract speaker
+                        let speaker = 'Participant';
+                        let container = textEl.parentElement;
+
+                        // Walk up max 4 levels to find the entry container with speaker name
+                        for (let i = 0; i < 4 && container; i++) {
+                            // Look for speaker name — it's a text node/span BEFORE the caption text
+                            const allText = container.innerText || '';
+                            if (allText.length > text.length + 3) {
+                                // The speaker name is the text before the caption text
+                                const idx = allText.indexOf(text);
+                                if (idx > 0) {
+                                    const nameCandidate = allText.substring(0, idx).trim();
+                                    // Clean up: remove emoji/icons, "(Unverified)" etc
+                                    const cleanName = nameCandidate
+                                        .replace(/\\(Unverified\\)/gi, '')
+                                        .replace(/[\\u{1F3A7}\\u{1F50A}\\u{1F399}]/gu, '')
+                                        .trim();
+                                    if (cleanName && cleanName.length > 1 && cleanName.length < 50) {
+                                        speaker = cleanName;
+                                        break;
+                                    }
+                                }
+                            }
+                            container = container.parentElement;
+                        }
+
+                        // Skip Gneva's own captions
+                        const spkLower = speaker.toLowerCase();
+                        if (spkLower.includes('gneva') || spkLower.includes('geneva') ||
+                            spkLower.includes('neva ai') || spkLower.includes('gneva ai')) return;
+
+                        // Also skip if the TEXT looks like Gneva's greeting
+                        const txtLower = text.toLowerCase();
+                        if (txtLower.includes('i\\'m neva') || txtLower.includes('i\\'m gneva') ||
+                            txtLower.includes('i am gneva') || txtLower.includes('i am neva')) return;
+
+                        // Skip system messages
+                        if (txtLower.includes('is recording') || txtLower.includes('joined the') ||
+                            txtLower.includes('transcription has started') ||
+                            txtLower.includes('captions will now') || txtLower.includes('left the meeting')) return;
+
+                        // Deduplicate by exact text
+                        const key = speaker + '|' + text;
+                        if (seenTexts.has(key)) return;
+                        seenTexts.add(key);
+
+                        // Bound the set
+                        if (seenTexts.size > 300) {
+                            const it = seenTexts.values();
+                            for (let i = 0; i < 100; i++) seenTexts.delete(it.next().value);
+                        }
+
+                        console.log('[Gneva Caption] ' + speaker + ': ' + text);
+                        window.__gnevaCaptions.segments.push({
+                            text: text, speaker: speaker, ts: Date.now()
+                        });
+                    });
+                }
+
+                // Poll every 800ms for responsive conversation
+                setInterval(scrapeCaptions, 800);
+
+                // === CHAT SCRAPER (backup) ===
+                const seenChat = new Set();
+                function scrapeChat() {
+                    document.querySelectorAll(
+                        '[data-tid="messageBodyContent"], .fui-ChatMessage__body'
+                    ).forEach(el => {
+                        const text = (el.textContent || '').trim();
+                        if (!text || text.length < 2 || seenChat.has(text)) return;
+                        if (text.includes('Gneva AI') || text.includes('joined')) return;
+                        seenChat.add(text);
+                        if (seenChat.size > 200) {
+                            seenChat.delete(seenChat.values().next().value);
+                        }
+                        window.__gnevaCaptions.segments.push({
+                            text: text, speaker: 'Chat', ts: Date.now()
+                        });
+                    });
+                }
+                setInterval(scrapeChat, 3000);
+
+                console.log('[Gneva] Caption scraper initialized (data-tid selectors)');
+            })();
+            """
+            try:
+                await cdp.send("Runtime.evaluate", {"expression": caption_js})
+                logger.info(f"Bot {self.bot_id}: caption scraper injected")
+            except Exception as e:
+                logger.warning(f"Bot {self.bot_id}: caption scraper injection failed: {e}")
+
     async def _monitor_meeting(self):
         """Poll for meeting end, stop signal, or max duration.
 
@@ -221,7 +477,7 @@ class BrowserBot:
         last_audio_bytes = self._audio_capture._total_bytes if self._audio_capture else 0
         last_audio_change = datetime.utcnow()
         last_log_time = datetime.utcnow()
-        silence_threshold_sec = 60  # seconds of silence before assuming meeting ended
+        silence_threshold_sec = 7200  # 2 hours — captions work independently of audio capture
         poll_count = 0
 
         while not self._stop_event.is_set():
@@ -276,7 +532,7 @@ class BrowserBot:
                 logger.info(f"Bot {self.bot_id}: max duration reached")
                 break
 
-            # Periodic debug logging (every ~60 seconds = 12 polls at 5s interval)
+            # Periodic debug logging (every ~60 seconds = 30 polls at 2s interval)
             now = datetime.utcnow()
             if (now - last_log_time).total_seconds() >= 60:
                 audio_info = ""
@@ -292,11 +548,38 @@ class BrowserBot:
                 )
                 last_log_time = now
 
-            await asyncio.sleep(5)
+            # Poll for caption segments and feed to conversation engine
+            if self._conversation and self._page:
+                try:
+                    result = await self._page.evaluate("""
+                        (() => {
+                            if (!window.__gnevaCaptions || !window.__gnevaCaptions.segments.length) return [];
+                            const segs = window.__gnevaCaptions.segments.splice(0);
+                            return segs;
+                        })()
+                    """)
+                    if result:
+                        for seg in result:
+                            text = seg.get("text", "")
+                            speaker = seg.get("speaker", "Unknown")
+                            if text.strip():
+                                await self._conversation.on_transcript_segment(text, speaker)
+                except Exception as e:
+                    if poll_count % 12 == 0:  # Log only every ~60s
+                        logger.debug(f"Bot {self.bot_id}: caption poll error: {e}")
+
+            await asyncio.sleep(2)
 
     async def _leave_meeting(self):
         """Leave the meeting and finalize audio."""
         self.state = BotState.LEAVING
+
+        # Stop conversation engine
+        if self._conversation:
+            try:
+                await self._conversation.stop()
+            except Exception:
+                pass
 
         try:
             await self._driver.leave()
@@ -395,13 +678,28 @@ class BrowserBot:
             return
 
         try:
-            from gneva.services.tts import TTSService
+            # Unmute before speaking (like a real person)
+            try:
+                await self._driver.ensure_unmuted()
+            except Exception as e:
+                logger.debug(f"Bot {self.bot_id}: unmute attempt: {e}")
+
+            from gneva.services.tts import TTSService, EDGE_TTS_VOICES
+            import json as _json
             tts = TTSService()
+            if self.voice_id:
+                tts._el_voice = self.voice_id
+                # Map ElevenLabs voice IDs to edge-tts voices for fallback
+                from gneva.bot.talking_head import VOICE_FACE_MAP
+                face_name = VOICE_FACE_MAP.get(self.voice_id, "").replace(".jpg", "")
+                if face_name in EDGE_TTS_VOICES:
+                    tts._edge_voice = EDGE_TTS_VOICES[face_name]
             audio_bytes = await tts.synthesize(text)
 
             # Convert WAV to base64 for browser injection
             import base64
             audio_b64 = base64.b64encode(audio_bytes).decode()
+            audio_b64_safe = _json.dumps(audio_b64)  # S2 fix: safe JS string
 
             # Start lip-sync animation
             cdp = await self._page.context.new_cdp_session(self._page)
@@ -409,47 +707,59 @@ class BrowserBot:
                 "expression": get_speaking_js(True)
             })
 
-            # Inject and play audio in the browser (feeds into the meeting audio)
+            # Pipe TTS audio into the meeting via the getUserMedia audio destination
+            # The avatar system provides __gnevaAudioDest which Teams uses as "mic"
+            # Returns the audio duration as a promise so we know exactly how long to wait
             play_js = f"""
             (async () => {{
                 try {{
-                    const b64 = '{audio_b64}';
+                    const b64 = {audio_b64_safe};
                     const binary = atob(b64);
                     const bytes = new Uint8Array(binary.length);
                     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                    const audioCtx = new AudioContext({{ sampleRate: 22050 }});
-                    const buffer = await audioCtx.decodeAudioData(bytes.buffer);
+
+                    const audioCtx = window.__gnevaAudioCtx || new AudioContext();
+
+                    if (audioCtx.state === 'suspended') {{
+                        await audioCtx.resume();
+                    }}
+
+                    const buffer = await audioCtx.decodeAudioData(bytes.buffer.slice(0));
                     const source = audioCtx.createBufferSource();
                     source.buffer = buffer;
 
-                    // Create a MediaStreamDestination to feed into getUserMedia
-                    const dest = audioCtx.createMediaStreamDestination();
-                    source.connect(dest);
-                    source.connect(audioCtx.destination);  // also play locally for debugging
+                    if (window.__gnevaAudioDest) {{
+                        source.connect(window.__gnevaAudioDest);
+                    }}
+                    source.connect(audioCtx.destination);
                     source.start();
 
-                    // Return duration so we know when to stop lip-sync
                     window.__gnevaLastSpeechDuration = buffer.duration;
+                    return buffer.duration;
                 }} catch(e) {{
                     console.error('[Gneva] Speech playback error:', e);
+                    return 3;
                 }}
-            }})();
+            }})()
             """
-            await cdp.send("Runtime.evaluate", {"expression": play_js})
-
-            # Wait for speech to finish, then stop lip-sync
-            # Get the duration from the browser
             dur_result = await cdp.send("Runtime.evaluate", {
-                "expression": "window.__gnevaLastSpeechDuration || 3",
+                "expression": play_js,
                 "returnByValue": True,
+                "awaitPromise": True,
             })
             duration = dur_result.get("result", {}).get("value", 3)
-            await asyncio.sleep(duration + 0.3)
+            await asyncio.sleep(duration + 0.5)
 
             await cdp.send("Runtime.evaluate", {
                 "expression": get_speaking_js(False)
             })
             logger.info(f"Bot {self.bot_id}: spoke for {duration:.1f}s — '{text[:50]}...'")
+
+            # Re-mute after speaking (like a real person)
+            try:
+                await self._driver.ensure_muted()
+            except Exception as e:
+                logger.debug(f"Bot {self.bot_id}: re-mute attempt: {e}")
         except Exception as e:
             logger.error(f"Bot {self.bot_id}: speak error: {e}", exc_info=True)
             # Make sure lip-sync stops even on error
@@ -458,6 +768,11 @@ class BrowserBot:
                 await cdp.send("Runtime.evaluate", {
                     "expression": get_speaking_js(False)
                 })
+            except Exception:
+                pass
+            # Re-mute on error too
+            try:
+                await self._driver.ensure_muted()
             except Exception:
                 pass
 

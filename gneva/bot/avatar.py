@@ -6,26 +6,27 @@ The canvas stream replaces the fake camera device via getUserMedia override.
 """
 
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 
-# Path to the avatar HTML page
-AVATAR_HTML_PATH = os.path.join(os.path.dirname(__file__), "avatar_page.html")
 
-
-def get_avatar_inject_js() -> str:
+def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
     """Return JS that overrides getUserMedia to serve our canvas-based avatar.
 
     This must be injected BEFORE the meeting page requests camera access.
     It creates a hidden canvas, renders the avatar, and returns that stream
     whenever the page asks for a video track.
-    """
-    with open(AVATAR_HTML_PATH, "r", encoding="utf-8") as f:
-        avatar_html = f.read()
 
-    # We inject the avatar HTML into an offscreen container, then
-    # intercept getUserMedia to return the canvas stream
+    Args:
+        face_image_b64: Optional base64 data URL of a face photo. When provided,
+            the avatar renders the photo instead of a cartoon face, with
+            lip-sync and idle animations overlaid on top.
+    """
+    # Escape the base64 string for safe JS embedding (S1 fix: use json.dumps for XSS safety)
+    import json
+    face_b64_js = json.dumps(face_image_b64) if face_image_b64 else "null"
+
+    # We use string replacement instead of f-string to avoid escaping hundreds of JS braces
     js = """
 (function() {
     // ===== AVATAR RENDERING ENGINE =====
@@ -35,11 +36,29 @@ def get_avatar_inject_js() -> str:
         fps: 30,
     };
 
+    const FACE_IMAGE_B64 = __FACE_B64_PLACEHOLDER__;
+
     // Create offscreen canvas for avatar
     const avatarCanvas = document.createElement('canvas');
     avatarCanvas.width = AVATAR_CONFIG.width;
     avatarCanvas.height = AVATAR_CONFIG.height;
     const ctx = avatarCanvas.getContext('2d');
+
+    // Load photo face image if provided
+    let facePhoto = null;
+    let facePhotoLoaded = false;
+    if (FACE_IMAGE_B64) {
+        facePhoto = new Image();
+        facePhoto.onload = function() {
+            facePhotoLoaded = true;
+            console.log('[Gneva Avatar] Face photo loaded successfully');
+        };
+        facePhoto.onerror = function() {
+            console.warn('[Gneva Avatar] Face photo failed to load, falling back to cartoon');
+            facePhoto = null;
+        };
+        facePhoto.src = FACE_IMAGE_B64;
+    }
 
     // Avatar state
     const state = {
@@ -91,6 +110,14 @@ def get_avatar_inject_js() -> str:
         // Clear
         ctx.clearRect(0, 0, W, H);
 
+        // If photo face is loaded, render photo-based avatar
+        if (facePhotoLoaded && facePhoto) {
+            drawPhotoAvatar(W, H, cx, faceY);
+            requestAnimationFrame(drawAvatar);
+            return;
+        }
+
+        // === FALLBACK: Cartoon avatar ===
         // Background gradient (professional dark)
         const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
         bgGrad.addColorStop(0, BG_GRADIENT_TOP);
@@ -152,6 +179,54 @@ def get_avatar_inject_js() -> str:
         drawNameTag(cx, H);
 
         requestAnimationFrame(drawAvatar);
+    }
+
+    // === PHOTO-BASED AVATAR RENDERING ===
+    function drawPhotoAvatar(W, H, cx, faceY) {
+        // Draw the face photo at ~60% of canvas height, centered, like a webcam portrait
+        const imgW = facePhoto.naturalWidth;
+        const imgH = facePhoto.naturalHeight;
+        // Target: face takes up about 45% of canvas height (natural webcam framing)
+        const targetH = H * 0.45;
+        const scale = targetH / imgH;
+        const drawW = imgW * scale;
+        const drawH = targetH;
+        const drawX = (W - drawW) / 2;
+        const drawY = H - drawH;  // anchor to bottom (like sitting at desk)
+
+        // Draw a professional background (soft gradient office look)
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+        bgGrad.addColorStop(0, '#2C3E50');  // Dark blue-gray top
+        bgGrad.addColorStop(0.6, '#34495E');  // Slightly lighter mid
+        bgGrad.addColorStop(1, '#2C3E50');  // Dark bottom
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Subtle vignette effect
+        const vigGrad = ctx.createRadialGradient(cx, H * 0.4, H * 0.3, cx, H * 0.4, H * 0.9);
+        vigGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        vigGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.fillStyle = vigGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.save();
+
+        // Subtle breathing movement (shift image slightly up/down)
+        const breathOffset = Math.sin(state.breathCycle) * 1.0;
+        ctx.translate(0, breathOffset);
+
+        // Subtle head tilt
+        ctx.translate(cx, H * 0.45);
+        ctx.rotate(state.headTilt * 0.008);
+        ctx.translate(-cx, -H * 0.45);
+
+        // Draw the photo
+        ctx.drawImage(facePhoto, drawX, drawY, drawW, drawH);
+
+        ctx.restore();
+
+        // Name tag
+        drawNameTag(cx, H);
     }
 
     function updateAnimations(dt) {
@@ -510,9 +585,67 @@ def get_avatar_inject_js() -> str:
         ctx.fillText('Gneva', cx, tagY + 14);
     }
 
+    // ===== enumerateDevices OVERRIDE =====
+    // Report fake camera + mic so Teams/Zoom/Meet think hardware exists
+    // and proceed to call getUserMedia (which we intercept below)
+    const origEnumerateDevices = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
+    navigator.mediaDevices.enumerateDevices = async function() {
+        const real = await origEnumerateDevices().catch(() => []);
+        // Check if camera/mic already exist
+        const hasVideo = real.some(d => d.kind === 'videoinput');
+        const hasAudio = real.some(d => d.kind === 'audioinput');
+        const result = [...real];
+        if (!hasVideo) {
+            result.push({
+                deviceId: 'gneva-camera', groupId: 'gneva',
+                kind: 'videoinput', label: 'Gneva Virtual Camera',
+                toJSON() { return { deviceId: this.deviceId, groupId: this.groupId, kind: this.kind, label: this.label }; }
+            });
+        }
+        if (!hasAudio) {
+            result.push({
+                deviceId: 'gneva-mic', groupId: 'gneva',
+                kind: 'audioinput', label: 'Gneva Virtual Microphone',
+                toJSON() { return { deviceId: this.deviceId, groupId: this.groupId, kind: this.kind, label: this.label }; }
+            });
+        }
+        console.log('[Gneva Avatar] enumerateDevices: reporting', result.length, 'devices (video:', result.filter(d=>d.kind==='videoinput').length, ', audio:', result.filter(d=>d.kind==='audioinput').length, ')');
+        return result;
+    };
+
     // ===== getUserMedia OVERRIDE =====
     const canvasStream = avatarCanvas.captureStream(AVATAR_CONFIG.fps);
     const avatarVideoTrack = canvasStream.getVideoTracks()[0];
+
+    // Create a persistent audio context and destination for TTS injection
+    // This is the audio stream Teams will use as "microphone"
+    const gnevaAudioCtx = new AudioContext();
+
+    // Resume AudioContext immediately (may be suspended by browser policy)
+    if (gnevaAudioCtx.state === 'suspended') {
+        gnevaAudioCtx.resume().then(() => {
+            console.log('[Gneva Avatar] AudioContext resumed');
+        });
+        // Also resume on any user interaction (backup)
+        ['click', 'keydown', 'mousedown', 'touchstart'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                if (gnevaAudioCtx.state === 'suspended') gnevaAudioCtx.resume();
+            }, { once: true });
+        });
+    }
+
+    const gnevaAudioDest = gnevaAudioCtx.createMediaStreamDestination();
+    // Create a silent oscillator to keep the stream alive
+    const silentOsc = gnevaAudioCtx.createOscillator();
+    const silentGain = gnevaAudioCtx.createGain();
+    silentGain.gain.value = 0; // silent
+    silentOsc.connect(silentGain);
+    silentGain.connect(gnevaAudioDest);
+    silentOsc.start();
+
+    // Expose audio destination globally so speak() can pipe TTS audio into it
+    window.__gnevaAudioCtx = gnevaAudioCtx;
+    window.__gnevaAudioDest = gnevaAudioDest;
 
     // Start rendering
     requestAnimationFrame(drawAvatar);
@@ -520,27 +653,29 @@ def get_avatar_inject_js() -> str:
     const origGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
 
     navigator.mediaDevices.getUserMedia = async function(constraints) {
-        // If requesting video, return our avatar canvas stream
-        if (constraints && constraints.video) {
-            console.log('[Gneva Avatar] Intercepting getUserMedia — serving avatar video track');
+        const wantVideo = constraints && constraints.video;
+        const wantAudio = constraints && constraints.audio;
 
-            // If also requesting audio, get real audio and combine
-            if (constraints.audio) {
-                try {
-                    const audioStream = await origGetUserMedia({ audio: constraints.audio });
-                    const combined = new MediaStream();
-                    combined.addTrack(avatarVideoTrack.clone());
-                    audioStream.getAudioTracks().forEach(t => combined.addTrack(t));
-                    return combined;
-                } catch (e) {
-                    // Audio failed, just return video
-                    console.log('[Gneva Avatar] Audio capture failed, returning video only');
-                    return canvasStream;
-                }
+        if (wantVideo || wantAudio) {
+            const combined = new MediaStream();
+
+            if (wantVideo) {
+                console.log('[Gneva Avatar] Serving avatar video track');
+                combined.addTrack(avatarVideoTrack.clone());
             }
-            return canvasStream;
+
+            if (wantAudio) {
+                // Give Teams our controllable audio destination instead of the real mic
+                console.log('[Gneva Avatar] Serving controllable audio track (for TTS injection)');
+                gnevaAudioDest.stream.getAudioTracks().forEach(t => combined.addTrack(t.clone()));
+            }
+
+            if (combined.getTracks().length > 0) {
+                console.log('[Gneva Avatar] getUserMedia intercepted — tracks:', combined.getTracks().length);
+                return combined;
+            }
         }
-        // Audio-only request — pass through
+        // Fallback
         return origGetUserMedia(constraints);
     };
 
@@ -556,12 +691,12 @@ def get_avatar_inject_js() -> str:
         startSpeaking: function() { state.speaking = true; },
         stopSpeaking: function() { state.speaking = false; },
         setSpeaking: function(v) { state.speaking = !!v; },
-        getState: function() { return {...state}; },
+        getState: function() { return Object.assign({}, state); },
     };
 
     console.log('[Gneva Avatar] Avatar system initialized — canvas stream ready');
 })();
-"""
+""".replace("__FACE_B64_PLACEHOLDER__", face_b64_js)
     return js
 
 

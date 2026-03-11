@@ -115,6 +115,12 @@ class ZoomDriver(BasePlatformDriver):
             await self._click_if_visible(S["mute_btn"])
             self.logger.info("Muted microphone")
 
+    async def ensure_unmuted(self):
+        unmute_sel = "button[aria-label*='Unmute' i], button[aria-label*='unmute' i]"
+        if await self._is_visible(unmute_sel, timeout=1000):
+            await self._click_if_visible(unmute_sel)
+            self.logger.info("Unmuted microphone")
+
     async def ensure_camera_off(self):
         if await self._is_visible(S["camera_on_indicator"], timeout=1000):
             await self._click_if_visible(S["camera_off_btn"])

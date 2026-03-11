@@ -1,7 +1,21 @@
 """Gneva FastAPI application."""
 
 import logging
+import sys
+
+# Configure logging so bot INFO messages are visible
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+    stream=sys.stderr,
+)
 from contextlib import asynccontextmanager
+
+# Fix: Windows asyncio subprocess support for Playwright
+# uvicorn uses ProactorEventLoop on Windows but Playwright needs subprocess support
+if sys.platform == "win32":
+    import asyncio
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
