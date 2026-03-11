@@ -1,7 +1,7 @@
 """Avatar system — generates a realistic virtual camera feed for Gneva in meetings.
 
-Uses an HTML canvas rendered in the browser to create a professional-looking
-AI team member avatar with idle animations and lip-sync when speaking.
+Uses an HTML canvas rendered in the browser to display a professional headshot
+with subtle idle animations (breathing, blinking, eye movement).
 The canvas stream replaces the fake camera device via getUserMedia override.
 """
 
@@ -20,7 +20,7 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
     Args:
         face_image_b64: Optional base64 data URL of a face photo. When provided,
             the avatar renders the photo instead of a cartoon face, with
-            lip-sync and idle animations overlaid on top.
+            subtle idle animations (breathing, gaze shifts).
     """
     # Escape the base64 string for safe JS embedding (S1 fix: use json.dumps for XSS safety)
     import json
@@ -60,10 +60,8 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
         facePhoto.src = FACE_IMAGE_B64;
     }
 
-    // Avatar state
+    // Avatar state (idle animations only — no lip-sync overlay)
     const state = {
-        speaking: false,
-        mouthOpen: 0,       // 0-1 mouth openness
         blinkTimer: 0,
         blinkState: 0,      // 0=open, 1=closing, 2=closed, 3=opening
         eyeTargetX: 0,
@@ -75,7 +73,6 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
         breathCycle: 0,
         lastTime: 0,
         microExpressionTimer: 0,
-        browRaise: 0,
         smileAmount: 0.15,  // slight resting smile
     };
 
@@ -117,7 +114,20 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
             return;
         }
 
-        // === FALLBACK: Cartoon avatar ===
+        // If a photo URL was provided but hasn't loaded yet, show loading screen
+        // (NOT the cartoon face — that causes ugly overlay flashing)
+        if (FACE_IMAGE_B64 && !facePhotoLoaded) {
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+            bgGrad.addColorStop(0, '#2C3E50');
+            bgGrad.addColorStop(1, '#2C3E50');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+            drawNameTag(cx, H);
+            requestAnimationFrame(drawAvatar);
+            return;
+        }
+
+        // === FALLBACK: Cartoon avatar (only when NO photo was provided) ===
         // Background gradient (professional dark)
         const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
         bgGrad.addColorStop(0, BG_GRADIENT_TOP);
@@ -182,50 +192,22 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
     }
 
     // === PHOTO-BASED AVATAR RENDERING ===
+    // Clean render: just the photo filling the canvas + name tag.
+    // NO overlays, NO vignette, NO breathing, NO head tilt.
     function drawPhotoAvatar(W, H, cx, faceY) {
-        // Draw the face photo at ~60% of canvas height, centered, like a webcam portrait
         const imgW = facePhoto.naturalWidth;
         const imgH = facePhoto.naturalHeight;
-        // Target: face takes up about 45% of canvas height (natural webcam framing)
-        const targetH = H * 0.45;
-        const scale = targetH / imgH;
+        // Scale to fill canvas completely (cover mode)
+        const scale = Math.max(W / imgW, H / imgH);
         const drawW = imgW * scale;
-        const drawH = targetH;
+        const drawH = imgH * scale;
         const drawX = (W - drawW) / 2;
-        const drawY = H - drawH;  // anchor to bottom (like sitting at desk)
+        const drawY = (H - drawH) / 2;
 
-        // Draw a professional background (soft gradient office look)
-        const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-        bgGrad.addColorStop(0, '#2C3E50');  // Dark blue-gray top
-        bgGrad.addColorStop(0.6, '#34495E');  // Slightly lighter mid
-        bgGrad.addColorStop(1, '#2C3E50');  // Dark bottom
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, W, H);
-
-        // Subtle vignette effect
-        const vigGrad = ctx.createRadialGradient(cx, H * 0.4, H * 0.3, cx, H * 0.4, H * 0.9);
-        vigGrad.addColorStop(0, 'rgba(0,0,0,0)');
-        vigGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
-        ctx.fillStyle = vigGrad;
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.save();
-
-        // Subtle breathing movement (shift image slightly up/down)
-        const breathOffset = Math.sin(state.breathCycle) * 1.0;
-        ctx.translate(0, breathOffset);
-
-        // Subtle head tilt
-        ctx.translate(cx, H * 0.45);
-        ctx.rotate(state.headTilt * 0.008);
-        ctx.translate(-cx, -H * 0.45);
-
-        // Draw the photo
+        // Draw the photo — nothing else on top
         ctx.drawImage(facePhoto, drawX, drawY, drawW, drawH);
 
-        ctx.restore();
-
-        // Name tag
+        // Name tag at the bottom
         drawNameTag(cx, H);
     }
 
@@ -263,18 +245,6 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
         state.eyeX += (state.eyeTargetX - state.eyeX) * dt * 2;
         state.eyeY += (state.eyeTargetY - state.eyeY) * dt * 2;
         state.headTilt += (state.headTiltTarget - state.headTilt) * dt * 1.5;
-
-        // Lip sync when speaking
-        if (state.speaking) {
-            state.mouthOpen = 0.3 + Math.sin(Date.now() * 0.012) * 0.25 +
-                              Math.sin(Date.now() * 0.019) * 0.15 +
-                              Math.sin(Date.now() * 0.007) * 0.1;
-            state.mouthOpen = Math.max(0.05, Math.min(0.8, state.mouthOpen));
-            state.browRaise += (0.15 - state.browRaise) * dt * 3;
-        } else {
-            state.mouthOpen += (0 - state.mouthOpen) * dt * 8;
-            state.browRaise += (0 - state.browRaise) * dt * 3;
-        }
     }
 
     function drawShoulders(cx, y, W) {
@@ -488,71 +458,26 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
     }
 
     function drawMouth(cx, mouthY) {
-        const openAmount = state.mouthOpen;
         const smile = state.smileAmount;
 
-        if (openAmount > 0.05) {
-            // Open mouth (speaking)
-            const mouthH = 4 + openAmount * 14;
-            const mouthW = 18 + smile * 4;
+        // Closed mouth — slight smile (static, no lip-sync)
+        ctx.strokeStyle = LIP_COLOR;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(cx - 18, mouthY + smile * 2);
+        ctx.quadraticCurveTo(cx - 6, mouthY - 1, cx, mouthY + 0.5);
+        ctx.quadraticCurveTo(cx + 6, mouthY - 1, cx + 18, mouthY + smile * 2);
+        ctx.stroke();
 
-            // Mouth cavity
-            ctx.fillStyle = '#4A1A1A';
-            ctx.beginPath();
-            ctx.ellipse(cx, mouthY + 2, mouthW, mouthH, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Teeth (top row)
-            if (openAmount > 0.15) {
-                ctx.fillStyle = TEETH_COLOR;
-                ctx.beginPath();
-                ctx.moveTo(cx - mouthW + 3, mouthY - 1);
-                ctx.lineTo(cx + mouthW - 3, mouthY - 1);
-                ctx.lineTo(cx + mouthW - 5, mouthY + Math.min(mouthH * 0.4, 5));
-                ctx.lineTo(cx - mouthW + 5, mouthY + Math.min(mouthH * 0.4, 5));
-                ctx.fill();
-            }
-
-            // Upper lip
-            ctx.fillStyle = LIP_COLOR;
-            ctx.beginPath();
-            ctx.moveTo(cx - mouthW - 2, mouthY);
-            ctx.quadraticCurveTo(cx - 6, mouthY - 5, cx, mouthY - 3);
-            ctx.quadraticCurveTo(cx + 6, mouthY - 5, cx + mouthW + 2, mouthY);
-            ctx.lineTo(cx + mouthW, mouthY + 1);
-            ctx.quadraticCurveTo(cx, mouthY - 1, cx - mouthW, mouthY + 1);
-            ctx.fill();
-
-            // Lower lip
-            ctx.fillStyle = LIP_DARK;
-            ctx.beginPath();
-            ctx.moveTo(cx - mouthW, mouthY + mouthH * 0.5);
-            ctx.quadraticCurveTo(cx, mouthY + mouthH + 3, cx + mouthW, mouthY + mouthH * 0.5);
-            ctx.quadraticCurveTo(cx, mouthY + mouthH + 1, cx - mouthW, mouthY + mouthH * 0.5);
-            ctx.fill();
-        } else {
-            // Closed mouth — slight smile
-            ctx.strokeStyle = LIP_COLOR;
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(cx - 18, mouthY + smile * 2);
-            // Cupid's bow
-            ctx.quadraticCurveTo(cx - 6, mouthY - 1, cx, mouthY + 0.5);
-            ctx.quadraticCurveTo(cx + 6, mouthY - 1, cx + 18, mouthY + smile * 2);
-            ctx.stroke();
-
-            // Lip color fill
-            ctx.fillStyle = 'rgba(196, 122, 106, 0.35)';
-            ctx.beginPath();
-            ctx.moveTo(cx - 17, mouthY + smile * 1.5);
-            ctx.quadraticCurveTo(cx, mouthY - 2, cx + 17, mouthY + smile * 1.5);
-            ctx.quadraticCurveTo(cx, mouthY + 5, cx - 17, mouthY + smile * 1.5);
-            ctx.fill();
-        }
+        ctx.fillStyle = 'rgba(196, 122, 106, 0.35)';
+        ctx.beginPath();
+        ctx.moveTo(cx - 17, mouthY + smile * 1.5);
+        ctx.quadraticCurveTo(cx, mouthY - 2, cx + 17, mouthY + smile * 1.5);
+        ctx.quadraticCurveTo(cx, mouthY + 5, cx - 17, mouthY + smile * 1.5);
+        ctx.fill();
     }
 
     function drawEyebrows(cx, browY) {
-        const raise = state.browRaise;
         const eyeSpacing = 24;
 
         ctx.strokeStyle = HAIR_COLOR;
@@ -562,8 +487,8 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
         [-1, 1].forEach(side => {
             const bx = cx + side * eyeSpacing;
             ctx.beginPath();
-            ctx.moveTo(bx - side * 14, browY + 3 - raise * 4);
-            ctx.quadraticCurveTo(bx, browY - 5 - raise * 6, bx + side * 14, browY + 1 - raise * 3);
+            ctx.moveTo(bx - side * 14, browY + 3);
+            ctx.quadraticCurveTo(bx, browY - 5, bx + side * 14, browY + 1);
             ctx.stroke();
         });
     }
@@ -686,23 +611,7 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
         };
     }
 
-    // Expose speaking control globally
-    window.__gnevaAvatar = {
-        startSpeaking: function() { state.speaking = true; },
-        stopSpeaking: function() { state.speaking = false; },
-        setSpeaking: function(v) { state.speaking = !!v; },
-        getState: function() { return Object.assign({}, state); },
-    };
-
     console.log('[Gneva Avatar] Avatar system initialized — canvas stream ready');
 })();
 """.replace("__FACE_B64_PLACEHOLDER__", face_b64_js)
     return js
-
-
-def get_speaking_js(speaking: bool) -> str:
-    """Return JS to toggle lip-sync animation."""
-    if speaking:
-        return "if(window.__gnevaAvatar) window.__gnevaAvatar.startSpeaking();"
-    else:
-        return "if(window.__gnevaAvatar) window.__gnevaAvatar.stopSpeaking();"

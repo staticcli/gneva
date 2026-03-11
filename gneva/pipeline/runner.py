@@ -9,7 +9,12 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from gneva.services import retry_transient
+
 logger = logging.getLogger(__name__)
+
+# Pre-configured retry decorator for LLM API calls
+_retry_transient = retry_transient(max_retries=2, base_delay=1.0)
 
 
 async def process_meeting(meeting_id: str):
@@ -23,7 +28,11 @@ async def process_meeting(meeting_id: str):
     5. Extract entities using LLM (Claude API or local Ollama)
     6. Generate summary using LLM
     7. Update meeting status to 'complete'
+
+    This function is safe to run as a background task — all exceptions are caught,
+    logged, and the meeting status is set to 'failed' on error.
     """
+    logger.info(f"Pipeline starting for meeting {meeting_id}")
     import uuid as uuid_mod
     from gneva.db import async_session_factory
     from gneva.models.meeting import Meeting, Transcript, TranscriptSegment, MeetingSummary
@@ -94,22 +103,38 @@ async def process_meeting(meeting_id: str):
                         "confidence": 0.9,
                     }]
             else:
-                # No audio — check if transcript already exists (demo meeting)
+                # No audio — check if caption transcript was saved by the bot
                 tx_result = await db.execute(
                     select(Transcript).where(Transcript.meeting_id == meeting_id)
                 )
                 existing_transcript = tx_result.scalar_one_or_none()
                 if existing_transcript:
                     transcript_text = existing_transcript.full_text
-                    logger.info("Using existing transcript (no audio to process)")
+                    logger.info(
+                        f"Using caption-based transcript ({existing_transcript.word_count} words)"
+                    )
+                    # Load segments from caption transcript for entity extraction
+                    seg_result = await db.execute(
+                        select(TranscriptSegment).where(
+                            TranscriptSegment.transcript_id == existing_transcript.id
+                        ).order_by(TranscriptSegment.start_ms)
+                    )
+                    for seg in seg_result.scalars().all():
+                        segments_data.append({
+                            "speaker_label": seg.speaker_label,
+                            "start_ms": seg.start_ms,
+                            "end_ms": seg.end_ms,
+                            "text": seg.text,
+                            "confidence": seg.confidence or 0.85,
+                        })
                 else:
                     logger.error(f"No audio and no transcript for meeting {meeting_id}")
                     meeting.status = "failed"
                     await db.commit()
                     return
 
-            # 4. Save transcript + segments (if not already saved)
-            if audio_path and transcript_text:
+            # 4. Save transcript + segments (if from audio — caption transcripts already saved)
+            if audio_path and os.path.exists(audio_path) and transcript_text:
                 # Check for existing transcript and remove it (reprocessing case)
                 existing_tx = (await db.execute(
                     select(Transcript).where(Transcript.meeting_id == meeting_id)
@@ -233,9 +258,10 @@ async def process_meeting(meeting_id: str):
 
             # 7. Mark complete
             meeting.status = "complete"
-            if audio_path and segments_data:
+            if segments_data:
                 total_ms = max((s["end_ms"] for s in segments_data), default=0)
-                meeting.duration_sec = total_ms // 1000
+                if total_ms > 0:
+                    meeting.duration_sec = total_ms // 1000
 
             await db.commit()
             logger.info(f"Pipeline complete for meeting {meeting_id}")
@@ -246,6 +272,7 @@ async def process_meeting(meeting_id: str):
             await db.commit()
 
 
+@_retry_transient
 async def _extract_with_llm(transcript_text: str, settings) -> dict:
     """Extract entities using either Claude API or local Ollama."""
     if settings.anthropic_api_key:
@@ -265,6 +292,7 @@ async def _extract_with_llm(transcript_text: str, settings) -> dict:
         return await extract_entities_local(transcript_text)
 
 
+@_retry_transient
 async def _summarize_with_llm(transcript_text: str, entities_ctx: str, settings) -> dict:
     """Generate summary using either Claude API or local Ollama."""
     if settings.anthropic_api_key:

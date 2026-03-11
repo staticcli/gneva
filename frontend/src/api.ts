@@ -49,8 +49,9 @@ export const api = {
   meetingDecisions: (id: string) => request(`/api/meetings/${id}/decisions`),
 
   // Bot
-  joinMeeting: (meeting_url: string, _platform: string, title?: string, bot_name?: string, voice_id?: string) =>
-    request('/api/bot/join', { method: 'POST', body: JSON.stringify({ meeting_url, platform: 'auto', meeting_title: title, bot_name, voice_id }) }),
+  joinMeeting: (meeting_url: string, _platform: string, title?: string, bot_name?: string, voice_id?: string, greeting_mode?: string) =>
+    request('/api/bot/join', { method: 'POST', body: JSON.stringify({ meeting_url, platform: 'auto', meeting_title: title, bot_name, voice_id, greeting_mode }) }),
+  greetingModes: () => request('/api/bot/greeting-modes'),
   leaveMeeting: (bot_id: string) =>
     request('/api/bot/leave', { method: 'POST', body: JSON.stringify({ bot_id }) }),
   botStatus: (bot_id: string) => request(`/api/bot/status/${bot_id}`),
@@ -65,10 +66,6 @@ export const api = {
 
   // Ask
   ask: (question: string) => request('/api/ask', { method: 'POST', body: JSON.stringify({ question }) }),
-
-  // Demo
-  createDemoMeeting: (title?: string) =>
-    request('/api/demo/meeting', { method: 'POST', body: JSON.stringify({ title: title || 'Q2 Planning Session', run_ai: true }) }),
 
   // Actions
   actionItems: (status?: string) => request(`/api/actions${status ? `?status=${status}` : ''}`),
@@ -139,4 +136,22 @@ export const api = {
   statusReport: () => request('/api/pm/status-report'),
   suggestMeetings: () => request('/api/pm/suggest-meetings', { method: 'POST' }),
   pmDashboard: () => request('/api/pm/dashboard'),
+
+  // ROI
+  meetingRoi: (id: string) => request(`/api/roi/meetings/${id}`),
+  roiOverview: () => request('/api/roi/overview'),
+
+  // Follow-ups (enforcement)
+  overdueFollowups: () => request('/api/followups/overdue'),
+  upcomingFollowups: () => request('/api/followups/upcoming'),
+  nudgeAction: (id: string) => request(`/api/followups/${id}/nudge`, { method: 'POST' }),
+
+  // Team Dynamics
+  speakerDynamics: () => request('/api/dynamics/speakers'),
+  meetingBalance: (id: string) => request(`/api/dynamics/meeting/${id}/balance`),
+
+  // Contradictions
+  activeContradictions: () => request('/api/contradictions/active'),
+  resolveContradiction: (id: string, resolution_note: string) =>
+    request(`/api/contradictions/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolution_note }) }),
 };

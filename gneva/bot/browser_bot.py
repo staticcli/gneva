@@ -6,12 +6,22 @@ import logging
 import os
 from datetime import datetime, timedelta
 from enum import Enum
+from urllib.parse import urlparse, urlunparse
 
 from gneva.bot.audio_capture import AudioCapture
-from gneva.bot.avatar import get_avatar_inject_js, get_speaking_js
+from gneva.bot.avatar import get_avatar_inject_js
 from gneva.bot.platforms import detect_platform, get_driver
 
 logger = logging.getLogger(__name__)
+
+
+def _redact_url(url: str) -> str:
+    """Return *url* with query parameters and fragment stripped for safe logging."""
+    try:
+        parsed = urlparse(url)
+        return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+    except Exception:
+        return "<redacted-url>"
 
 
 class BotState(str, Enum):
@@ -39,6 +49,8 @@ class BrowserBot:
         meeting_id: str | None = None,
         on_complete=None,
         voice_id: str | None = None,
+        org_id: str | None = None,
+        greeting_mode: str = "personalized",
     ):
         self.bot_id = str(uuid.uuid4())
         self.meeting_url = meeting_url
@@ -50,6 +62,8 @@ class BrowserBot:
         self.meeting_id = meeting_id
         self.on_complete = on_complete  # async callback(bot_id, meeting_id, audio_path, success)
         self.voice_id = voice_id  # ElevenLabs voice ID for TTS
+        self.org_id = org_id  # Organization ID for cross-meeting memory
+        self.greeting_mode = greeting_mode  # Greeting style for join
         self.on_state_change = None  # async callback(bot_id, meeting_id, new_state)
 
         self._state = BotState.INITIALIZING
@@ -86,7 +100,11 @@ class BrowserBot:
                 pass
 
     async def run(self, playwright):
-        """Main lifecycle: launch browser → join → record → leave."""
+        """Main lifecycle: launch browser → join → record → leave.
+
+        If the bot gets removed/kicked/disconnected, we still save
+        the transcript and trigger the pipeline — treat it as a normal end.
+        """
         try:
             self.started_at = datetime.utcnow()
             await self._launch_browser(playwright)
@@ -99,10 +117,13 @@ class BrowserBot:
             await self._monitor_meeting()
             await self._leave_meeting()
         except asyncio.CancelledError:
-            logger.info(f"Bot {self.bot_id} cancelled")
+            logger.info(f"Bot {self.bot_id} cancelled — saving transcript")
+            await self._emergency_save()
             self.state = BotState.ENDED
         except Exception as e:
             logger.error(f"Bot {self.bot_id} error: {e}", exc_info=True)
+            # Still try to save whatever transcript we have
+            await self._emergency_save()
             self.state = BotState.FAILED
             self.error = str(e)
         finally:
@@ -130,6 +151,9 @@ class BrowserBot:
                 "--disable-infobars",
                 "--auto-select-desktop-capture-source=Entire screen",
                 "--enable-usermedia-screen-capturing",
+                "--disable-external-intent-requests",    # Block "open in app?" protocol popups
+                "--disable-popup-blocking",              # We handle popups ourselves
+                "--block-new-web-contents",              # Prevent new windows opening
             ],
         )
 
@@ -222,7 +246,7 @@ class BrowserBot:
         self._page = await self._context.new_page()
         self._driver = get_driver(self.platform, self._page, self.bot_name)
 
-        logger.info(f"Bot {self.bot_id}: browser launched for {self.platform}")
+        logger.info(f"Bot {self.bot_id}: browser launched for {self.platform} -> {_redact_url(self.meeting_url)}")
 
     async def _join_meeting(self):
         """Join the meeting using the platform driver."""
@@ -237,12 +261,21 @@ class BrowserBot:
                     spath = os.path.join(self.audio_dir, "diagnostics", f"{self.bot_id}_join_failed.png")
                     await self._page.screenshot(path=spath, full_page=True)
                     logger.info(f"Bot {self.bot_id}: join-fail screenshot saved to {spath}")
-                    logger.info(f"Bot {self.bot_id}: page URL at failure: {self._page.url}")
+                    logger.info(f"Bot {self.bot_id}: page URL at failure: {_redact_url(self._page.url)}")
             except Exception:
                 pass
-            self.state = BotState.FAILED
-            self.error = "Failed to join meeting"
-            return
+
+            # Last-ditch: wait a bit and check if we're actually in the meeting
+            # (Teams light-meetings can auto-join with a delay)
+            logger.info(f"Bot {self.bot_id}: driver reported join failure — waiting 10s for possible late auto-join")
+            await asyncio.sleep(10)
+            if hasattr(self._driver, '_is_already_in_meeting') and await self._driver._is_already_in_meeting():
+                logger.info(f"Bot {self.bot_id}: late auto-join detected — proceeding as joined")
+                success = True
+            else:
+                self.state = BotState.FAILED
+                self.error = "Failed to join meeting"
+                return
 
         # Wait in lobby if needed
         lobby_start = datetime.utcnow()
@@ -262,7 +295,11 @@ class BrowserBot:
         # Start conversation engine for live responses
         try:
             from gneva.bot.conversation import ConversationEngine
-            self._conversation = ConversationEngine(bot=self)
+            self._conversation = ConversationEngine(
+                bot=self,
+                org_id=str(self.org_id) if self.org_id else None,
+                greeting_mode=self.greeting_mode,
+            )
             await self._conversation.start()
             await self._conversation.greet()
             logger.info(f"Bot {self.bot_id}: conversation engine started")
@@ -291,10 +328,6 @@ class BrowserBot:
         try:
             await self._page.evaluate("""
                 (() => {
-                    if (!window.__gnevaAvatar) {
-                        console.warn('[Gneva] Avatar system not found');
-                        return;
-                    }
                     // Find self-view video elements and replace their srcObject
                     const selfVideos = document.querySelectorAll(
                         'video[id*="self" i], video[id*="local" i], video[class*="self" i], ' +
@@ -429,11 +462,16 @@ class BrowserBot:
                         window.__gnevaCaptions.segments.push({
                             text: text, speaker: speaker, ts: Date.now()
                         });
+
+                        // Cap segment buffer to prevent unbounded memory growth
+                        if (window.__gnevaCaptions.segments.length > 500) {
+                            window.__gnevaCaptions.segments.splice(0, 200);
+                        }
                     });
                 }
 
                 // Poll every 800ms for responsive conversation
-                setInterval(scrapeCaptions, 800);
+                setInterval(scrapeCaptions, 500);  // 500ms for near-realtime
 
                 // === CHAT SCRAPER (backup) ===
                 const seenChat = new Set();
@@ -491,6 +529,31 @@ class BrowserBot:
             except Exception as e:
                 logger.warning(f"Bot {self.bot_id}: detect_meeting_ended error: {e}")
 
+            # Check if bot was removed/kicked from the meeting
+            try:
+                if self._page:
+                    removed = await self._page.evaluate("""
+                        (() => {
+                            const body = document.body ? document.body.innerText.toLowerCase() : '';
+                            const removedPhrases = [
+                                'you have been removed', 'removed from the meeting',
+                                'the meeting has ended', 'you were removed',
+                                'kicked from', 'call ended', 'meeting ended',
+                                'you left the meeting', 'disconnected from the meeting',
+                                'the organizer ended the meeting',
+                            ];
+                            return removedPhrases.some(p => body.includes(p));
+                        })()
+                    """)
+                    if removed:
+                        logger.info(f"Bot {self.bot_id}: removed/kicked from meeting")
+                        break
+            except Exception:
+                # Page might be gone — that itself means we got removed
+                if self._page and self._page.is_closed():
+                    logger.info(f"Bot {self.bot_id}: page closed — removed from meeting")
+                    break
+
             # Fallback: check if page URL has changed (redirected away from meeting)
             try:
                 current_url = self._page.url if self._page else ""
@@ -506,7 +569,7 @@ class BrowserBot:
                     ):
                         logger.info(
                             f"Bot {self.bot_id}: meeting ended — URL changed "
-                            f"from {initial_url} to {current_url}"
+                            f"from {_redact_url(initial_url)} to {_redact_url(current_url)}"
                         )
                         break
             except Exception:
@@ -568,10 +631,64 @@ class BrowserBot:
                     if poll_count % 12 == 0:  # Log only every ~60s
                         logger.debug(f"Bot {self.bot_id}: caption poll error: {e}")
 
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)  # Poll every 1s for near-realtime conversation
+
+    async def _emergency_save(self):
+        """Save whatever transcript/context we have when the bot is unexpectedly disconnected.
+
+        Called on CancelledError or unexpected exceptions — the page may already be
+        gone, so we only use what's in memory (conversation engine buffer).
+        """
+        try:
+            # Save conversation engine's context
+            if self._conversation:
+                try:
+                    await self._conversation.stop()
+                except Exception:
+                    pass
+
+                # Try to save the transcript buffer directly
+                if self._conversation._transcript_buffer and self.meeting_id:
+                    caption_segments = [
+                        {"speaker": s.get("speaker", "Unknown"), "text": s.get("text", ""), "ts": 0}
+                        for s in self._conversation._transcript_buffer
+                        if s.get("text", "").strip()
+                    ]
+                    if caption_segments:
+                        try:
+                            await self._save_caption_transcript(caption_segments)
+                            logger.info(
+                                f"Bot {self.bot_id}: emergency saved {len(caption_segments)} caption segments"
+                            )
+                        except Exception as e:
+                            logger.warning(f"Bot {self.bot_id}: emergency transcript save failed: {e}")
+
+            # Save audio if we have any
+            if self._audio_capture:
+                try:
+                    self.audio_path = await self._audio_capture.stop()
+                except Exception:
+                    pass
+
+            # Trigger pipeline
+            self.ended_at = datetime.utcnow()
+            if self.on_complete and self.meeting_id:
+                try:
+                    has_audio = self._audio_capture.has_audio if self._audio_capture else False
+                    await self.on_complete(
+                        bot_id=self.bot_id,
+                        meeting_id=self.meeting_id,
+                        audio_path=self.audio_path,
+                        success=True,  # We have data worth processing
+                    )
+                except Exception as e:
+                    logger.debug(f"Bot {self.bot_id}: emergency on_complete failed: {e}")
+
+        except Exception as e:
+            logger.warning(f"Bot {self.bot_id}: emergency save failed: {e}")
 
     async def _leave_meeting(self):
-        """Leave the meeting and finalize audio."""
+        """Leave the meeting and finalize audio + caption transcript."""
         self.state = BotState.LEAVING
 
         # Stop conversation engine
@@ -580,6 +697,34 @@ class BrowserBot:
                 await self._conversation.stop()
             except Exception:
                 pass
+
+        # Extract caption transcript from browser BEFORE closing it
+        caption_segments = []
+        if self._page and self._conversation:
+            try:
+                caption_segments = await self._page.evaluate("""
+                    (() => {
+                        // Gather all caption segments from conversation engine buffer
+                        // plus any remaining in the scraper buffer
+                        const result = [];
+                        if (window.__gnevaCaptions && window.__gnevaCaptions.segments) {
+                            window.__gnevaCaptions.segments.forEach(s => {
+                                result.push({text: s.text, speaker: s.speaker, ts: s.ts});
+                            });
+                        }
+                        return result;
+                    })()
+                """)
+            except Exception as e:
+                logger.warning(f"Bot {self.bot_id}: caption extraction failed: {e}")
+
+        # Also include the conversation engine's transcript buffer
+        if self._conversation and self._conversation._transcript_buffer:
+            for seg in self._conversation._transcript_buffer:
+                # Avoid duplicates — only add if not already in caption_segments
+                text = seg.get("text", "")
+                if text and not any(c.get("text") == text for c in caption_segments):
+                    caption_segments.append(seg)
 
         try:
             await self._driver.leave()
@@ -598,8 +743,25 @@ class BrowserBot:
             if not self._audio_capture.has_audio:
                 await self._save_diagnostics()
 
+        # Save caption transcript to database
+        has_captions = len(caption_segments) > 0
+        if has_captions and self.meeting_id:
+            try:
+                await self._save_caption_transcript(caption_segments)
+            except Exception as e:
+                logger.error(f"Bot {self.bot_id}: caption transcript save failed: {e}")
+
         self.ended_at = datetime.utcnow()
         self.state = BotState.ENDED
+
+        has_audio = self._audio_capture.has_audio if self._audio_capture else False
+        success = has_audio or has_captions
+        logger.info(
+            f"Bot {self.bot_id}: meeting ended — "
+            f"audio={'yes' if has_audio else 'no'}, "
+            f"captions={len(caption_segments)} segments, "
+            f"success={success}"
+        )
 
         # Trigger pipeline callback
         if self.on_complete:
@@ -608,10 +770,67 @@ class BrowserBot:
                     bot_id=self.bot_id,
                     meeting_id=self.meeting_id,
                     audio_path=self.audio_path,
-                    success=self._audio_capture.has_audio if self._audio_capture else False,
+                    success=success,
                 )
             except Exception as e:
                 logger.error(f"Bot {self.bot_id}: on_complete callback error: {e}")
+
+    async def _save_caption_transcript(self, caption_segments: list):
+        """Save live caption segments as a transcript in the database."""
+        import uuid as uuid_mod
+        from gneva.db import async_session_factory
+        from gneva.models.meeting import Transcript, TranscriptSegment
+
+        meeting_uuid = uuid_mod.UUID(self.meeting_id)
+
+        # Build full text from segments
+        full_text_parts = []
+        for seg in caption_segments:
+            speaker = seg.get("speaker", "Participant")
+            text = seg.get("text", "")
+            if text.strip():
+                full_text_parts.append(f"{speaker}: {text}")
+
+        full_text = "\n".join(full_text_parts)
+        if not full_text.strip():
+            return
+
+        async with async_session_factory() as db:
+            transcript = Transcript(
+                meeting_id=meeting_uuid,
+                version=1,
+                full_text=full_text,
+                word_count=len(full_text.split()),
+                language="en",
+            )
+            db.add(transcript)
+            await db.flush()
+
+            # Create individual segments with timestamps
+            for i, seg in enumerate(caption_segments):
+                text = seg.get("text", "").strip()
+                if not text:
+                    continue
+                speaker = seg.get("speaker", "Participant")
+                ts = seg.get("ts", 0)
+                # Convert JS timestamp to ms offset from first segment
+                first_ts = caption_segments[0].get("ts", 0) if caption_segments else 0
+                offset_ms = int(ts - first_ts) if ts and first_ts else i * 3000
+
+                db.add(TranscriptSegment(
+                    transcript_id=transcript.id,
+                    speaker_label=speaker,
+                    start_ms=offset_ms,
+                    end_ms=offset_ms + 3000,
+                    text=text,
+                    confidence=0.85,  # caption-based (slightly lower than whisper)
+                ))
+
+            await db.commit()
+            logger.info(
+                f"Bot {self.bot_id}: saved caption transcript — "
+                f"{len(caption_segments)} segments, {len(full_text)} chars"
+            )
 
     async def _save_diagnostics(self):
         """Save screenshot and page content when no audio was captured, for debugging."""
@@ -637,7 +856,7 @@ class BrowserBot:
                 url = self._page.url
                 logger.warning(
                     f"Bot {self.bot_id}: NO AUDIO captured. "
-                    f"Current URL: {url}. "
+                    f"Current URL: {_redact_url(url)}. "
                     f"Diagnostics saved to {diag_dir}. "
                     f"Audio capture via WebSocket may have failed — "
                     f"check if WebRTC tracks were intercepted."
@@ -670,8 +889,7 @@ class BrowserBot:
     async def speak(self, text: str):
         """Synthesize speech via TTS and play it into the meeting.
 
-        This triggers the avatar lip-sync animation and injects
-        audio into the meeting via a MediaStream audio source.
+        Injects audio into the meeting via a MediaStream audio source.
         """
         if not self._page or self.state not in (BotState.IN_MEETING, BotState.RECORDING):
             logger.warning(f"Bot {self.bot_id}: cannot speak — not in meeting")
@@ -701,15 +919,9 @@ class BrowserBot:
             audio_b64 = base64.b64encode(audio_bytes).decode()
             audio_b64_safe = _json.dumps(audio_b64)  # S2 fix: safe JS string
 
-            # Start lip-sync animation
-            cdp = await self._page.context.new_cdp_session(self._page)
-            await cdp.send("Runtime.evaluate", {
-                "expression": get_speaking_js(True)
-            })
-
             # Pipe TTS audio into the meeting via the getUserMedia audio destination
             # The avatar system provides __gnevaAudioDest which Teams uses as "mic"
-            # Returns the audio duration as a promise so we know exactly how long to wait
+            cdp = await self._page.context.new_cdp_session(self._page)
             play_js = f"""
             (async () => {{
                 try {{
@@ -749,10 +961,6 @@ class BrowserBot:
             })
             duration = dur_result.get("result", {}).get("value", 3)
             await asyncio.sleep(duration + 0.5)
-
-            await cdp.send("Runtime.evaluate", {
-                "expression": get_speaking_js(False)
-            })
             logger.info(f"Bot {self.bot_id}: spoke for {duration:.1f}s — '{text[:50]}...'")
 
             # Re-mute after speaking (like a real person)
@@ -762,14 +970,6 @@ class BrowserBot:
                 logger.debug(f"Bot {self.bot_id}: re-mute attempt: {e}")
         except Exception as e:
             logger.error(f"Bot {self.bot_id}: speak error: {e}", exc_info=True)
-            # Make sure lip-sync stops even on error
-            try:
-                cdp = await self._page.context.new_cdp_session(self._page)
-                await cdp.send("Runtime.evaluate", {
-                    "expression": get_speaking_js(False)
-                })
-            except Exception:
-                pass
             # Re-mute on error too
             try:
                 await self._driver.ensure_muted()

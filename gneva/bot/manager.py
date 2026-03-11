@@ -46,12 +46,29 @@ class BotManager:
 
     async def stop(self):
         """Stop all bots and cleanup Playwright."""
-        for bot_id in list(self._bots.keys()):
-            await self.leave(bot_id)
+        # Signal all active bots to stop
+        for bot_id, bot in list(self._bots.items()):
+            try:
+                await bot.stop()
+            except Exception as e:
+                logger.warning(f"Error signaling bot {bot_id} to stop: {e}")
 
-        # Cancel remaining tasks
-        for task in self._tasks.values():
-            task.cancel()
+        # Wait for all bot tasks to finish with a timeout
+        tasks = [t for t in self._tasks.values() if not t.done()]
+        if tasks:
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*tasks, return_exceptions=True),
+                    timeout=10,
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Timed out waiting for {len(tasks)} bot(s) to stop — cancelling"
+                )
+                for task in tasks:
+                    task.cancel()
+                # Give cancelled tasks a moment to clean up
+                await asyncio.gather(*tasks, return_exceptions=True)
 
         if self._playwright:
             await self._playwright.stop()
@@ -66,6 +83,8 @@ class BotManager:
         bot_name: str | None = None,
         on_complete=None,
         voice_id: str | None = None,
+        org_id: str | None = None,
+        greeting_mode: str = "personalized",
     ) -> str:
         """
         Launch a bot to join a meeting. Returns the bot_id.
@@ -76,6 +95,8 @@ class BotManager:
             bot_name: Override the default bot name
             on_complete: async callback(bot_id, meeting_id, audio_path, success)
             voice_id: ElevenLabs voice ID for TTS
+            org_id: Organization ID for cross-meeting memory
+            greeting_mode: Greeting style (personalized, professional, casual, silent, etc.)
         """
         if not self._started:
             await self.start()
@@ -96,6 +117,8 @@ class BotManager:
             meeting_id=meeting_id,
             on_complete=on_complete,
             voice_id=voice_id,
+            org_id=org_id,
+            greeting_mode=greeting_mode,
         )
         bot.on_state_change = self._on_bot_state_change
 

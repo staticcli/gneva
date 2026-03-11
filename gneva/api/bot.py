@@ -1,9 +1,10 @@
 """Meeting bot endpoints — join/leave/status via native Playwright bot."""
 
 import asyncio
+import re
 import uuid
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,12 +43,39 @@ def set_bot_manager(manager):
     _bot_manager = manager
 
 
+GREETING_MODES = {
+    "personalized": None,  # AI-generated based on memory (default)
+    "professional": "Hey team, I'll be taking notes today. Let's make this a productive one.",
+    "casual": "Hey everyone! What are we diving into today?",
+    "energetic": "Alright team, let's do this! I'm all ears.",
+    "funny": "Oh man, not another meeting... just kidding, I love these. What's on the agenda?",
+    "monday": "Happy Monday! Hope everyone had a good weekend. Let's see what we've got this week.",
+    "friday": "Happy Friday! Let's wrap up strong. What do we need to close out?",
+    "standup": "Morning! Quick sync — what did everyone get done and what's blocking you?",
+    "silent": "",  # Client mode — don't say anything
+}
+
+
 class BotJoinRequest(BaseModel):
     meeting_url: str
     platform: str = "auto"  # "auto", "zoom", "google_meet", "teams"
     meeting_title: str | None = None
     bot_name: str | None = None  # override default name
     voice_id: str | None = None  # ElevenLabs voice ID for TTS
+    greeting_mode: str = "personalized"  # key from GREETING_MODES
+
+    @field_validator("bot_name")
+    @classmethod
+    def _sanitize_bot_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        # Strip HTML tags
+        v = re.sub(r"<[^>]*>", "", v).strip()
+        if len(v) > 30:
+            raise ValueError("bot_name must be at most 30 characters")
+        if not re.fullmatch(r"[A-Za-z0-9 ]*", v):
+            raise ValueError("bot_name must contain only alphanumeric characters and spaces")
+        return v
 
 
 class BotJoinResponse(BaseModel):
@@ -115,6 +143,11 @@ async def join_meeting(
                     from gneva.pipeline.runner import process_meeting
                     _create_background_task(process_meeting(meeting_id))
 
+    # Resolve greeting text from mode
+    greeting_mode = req.greeting_mode or "personalized"
+    if greeting_mode not in GREETING_MODES:
+        raise HTTPException(status_code=400, detail=f"Invalid greeting_mode. Options: {', '.join(GREETING_MODES.keys())}")
+
     # Launch the bot
     try:
         bot_id = await manager.join(
@@ -123,6 +156,8 @@ async def join_meeting(
             bot_name=req.bot_name or settings.bot_name,
             on_complete=on_bot_complete,
             voice_id=req.voice_id,
+            org_id=str(user.org_id),
+            greeting_mode=greeting_mode,
         )
     except RuntimeError as e:
         meeting.status = "failed"
@@ -227,6 +262,30 @@ async def list_active_bots(
     # Filter to only bots belonging to this org
     org_bots = [b for b in all_bots if b.get("bot_id") in org_bot_ids]
     return {"bots": org_bots}
+
+
+@router.get("/greeting-modes")
+async def list_greeting_modes(user: User = Depends(get_current_user)):
+    """List available greeting modes for bot join."""
+    modes = []
+    labels = {
+        "personalized": "Personalized (AI picks based on memory)",
+        "professional": "Professional",
+        "casual": "Casual & Friendly",
+        "energetic": "Energetic & Pumped",
+        "funny": "Funny / Sarcastic",
+        "monday": "Monday Vibes",
+        "friday": "Friday Energy",
+        "standup": "Standup / Daily Sync",
+        "silent": "Silent (Client Mode)",
+    }
+    for key in GREETING_MODES:
+        modes.append({
+            "id": key,
+            "label": labels.get(key, key.title()),
+            "preview": GREETING_MODES[key] if GREETING_MODES[key] else ("(AI-generated)" if key == "personalized" else "(no greeting)"),
+        })
+    return {"modes": modes}
 
 
 @router.get("/debug/{bot_id}")

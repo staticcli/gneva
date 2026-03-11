@@ -61,6 +61,13 @@ class TeamsDriver(BasePlatformDriver):
     async def join(self, meeting_url: str) -> bool:
         self.logger.info(f"Joining Teams meeting: {meeting_url}")
 
+        # Block Teams from opening the desktop app via protocol handler
+        await self.page.route("msteams://**", lambda route: route.abort())
+        await self.page.route("ms-teams://**", lambda route: route.abort())
+
+        # Block popup windows (Teams "open in app" dialogs)
+        self.page.on("popup", lambda popup: asyncio.ensure_future(popup.close()))
+
         await self.page.goto(meeting_url, wait_until="domcontentloaded", timeout=30000)
         await asyncio.sleep(3)
 
@@ -77,6 +84,12 @@ class TeamsDriver(BasePlatformDriver):
         # Light-meetings takes longer to load (~15-20s)
         self.logger.info("Waiting for pre-join screen to load...")
         await asyncio.sleep(15)
+
+        # Check if we're already in the meeting (light-meetings can auto-join)
+        if await self._is_already_in_meeting():
+            self.logger.info("Already in the meeting (auto-joined via light-meetings)")
+            await self.ensure_muted()
+            return True
 
         # Handle "Are you sure you don't want audio/video?" dialog
         try:
@@ -110,6 +123,11 @@ class TeamsDriver(BasePlatformDriver):
 
         # Click "Join now"
         if not await self._click_if_visible(S["join_button"], timeout=5000):
+            # One more check — maybe we got auto-joined while setting up
+            if await self._is_already_in_meeting():
+                self.logger.info("Auto-joined while preparing (no join button needed)")
+                await self.ensure_muted()
+                return True
             self.logger.error("Could not find join button")
             return False
 
@@ -121,6 +139,21 @@ class TeamsDriver(BasePlatformDriver):
 
         self.logger.info("Successfully joined Teams meeting")
         return True
+
+    async def _is_already_in_meeting(self) -> bool:
+        """Detect if we're already inside a Teams meeting (light-meetings auto-join)."""
+        # Leave button is the most reliable indicator of being in-meeting
+        leave_sel = "button[aria-label*='Leave' i], button:has-text('Leave'), button[id*='hangup' i]"
+        if await self._is_visible(leave_sel, timeout=2000):
+            return True
+        # Also check for meeting toolbar indicators
+        toolbar_sel = (
+            "button[aria-label*='Mute' i], button[aria-label*='Unmute' i], "
+            "button[aria-label*='Camera' i], button[aria-label*='More actions' i]"
+        )
+        if await self._is_visible(toolbar_sel, timeout=1000):
+            return True
+        return False
 
     async def ensure_muted(self):
         if await self._is_visible(S["mic_on_indicator"], timeout=1000):

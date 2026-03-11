@@ -51,7 +51,48 @@ async def realtime_stream(websocket: WebSocket, meeting_id: str):
     engine = _get_engine()
     mid = uuid.UUID(meeting_id)
     org_id: uuid.UUID | None = None
-    authenticated = False
+
+    # ---- Authentication: first message MUST contain a valid token ----
+    try:
+        raw = await websocket.receive_text()
+    except WebSocketDisconnect:
+        return
+
+    try:
+        first_msg = json.loads(raw)
+    except json.JSONDecodeError:
+        await websocket.send_json({"type": "error", "message": "Invalid JSON"})
+        await websocket.close(code=4001)
+        return
+
+    token = first_msg.get("token", "")
+    if not token:
+        await websocket.send_json({"type": "error", "message": "First message must contain a token"})
+        await websocket.close(code=4001)
+        return
+
+    try:
+        payload = decode_token(token)
+        org_id = uuid.UUID(payload["org_id"])
+    except Exception:
+        await websocket.send_json({"type": "error", "message": "Invalid token"})
+        await websocket.close(code=4001)
+        return
+
+    # Verify the meeting belongs to the authenticated user's org
+    async with async_session_factory() as db:
+        meeting = (await db.execute(
+            select(Meeting).where(
+                Meeting.id == mid,
+                Meeting.org_id == org_id,
+            )
+        )).scalar_one_or_none()
+    if not meeting:
+        await websocket.send_json({"type": "error", "message": "Meeting not found or access denied"})
+        await websocket.close(code=4003)
+        return
+
+    await websocket.send_json({"type": "auth", "status": "ok"})
 
     try:
         while True:
@@ -61,34 +102,6 @@ async def realtime_stream(websocket: WebSocket, meeting_id: str):
             except json.JSONDecodeError:
                 await websocket.send_json({"type": "error", "message": "Invalid JSON"})
                 continue
-
-            # Authenticate on first message or if token provided
-            if not authenticated or "token" in data:
-                token = data.get("token", "")
-                if token:
-                    try:
-                        payload = decode_token(token)
-                        org_id = uuid.UUID(payload["org_id"])
-                        authenticated = True
-                    except Exception:
-                        await websocket.send_json({"type": "error", "message": "Invalid token"})
-                        continue
-
-                    # Verify the meeting belongs to the authenticated user's org
-                    async with async_session_factory() as db:
-                        meeting = (await db.execute(
-                            select(Meeting).where(
-                                Meeting.id == mid,
-                                Meeting.org_id == org_id,
-                            )
-                        )).scalar_one_or_none()
-                    if not meeting:
-                        await websocket.send_json({"type": "error", "message": "Meeting not found or access denied"})
-                        await websocket.close(code=4003)
-                        return
-                elif not authenticated:
-                    await websocket.send_json({"type": "error", "message": "Send token to authenticate"})
-                    continue
 
             text = data.get("text", "").strip()
             speaker = data.get("speaker", "Unknown")

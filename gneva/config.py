@@ -1,7 +1,15 @@
 """Gneva configuration — loaded from environment variables."""
 
+import logging
+import sys
+
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
 from functools import lru_cache
+
+_cfg_logger = logging.getLogger(__name__)
+
+_INSECURE_DEFAULT_KEY = "change-me-in-production"
 
 
 class Settings(BaseSettings):
@@ -13,8 +21,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Auth
-    secret_key: str = "change-me-in-production"
-    access_token_expire_minutes: int = 60 * 24  # 24 hours
+    secret_key: str = _INSECURE_DEFAULT_KEY
+    access_token_expire_minutes: int = 480  # 8 hours
     algorithm: str = "HS256"
 
     # Meeting Bot
@@ -87,6 +95,18 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8100"]
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    @model_validator(mode="after")
+    def _validate_secret_key(self) -> "Settings":
+        if self.secret_key == _INSECURE_DEFAULT_KEY:
+            _cfg_logger.critical(
+                "SECRET_KEY is set to the insecure default! "
+                "Set a strong, unique SECRET_KEY environment variable."
+            )
+            if not self.debug:
+                _cfg_logger.critical("Refusing to start in non-debug mode with default SECRET_KEY.")
+                sys.exit(1)
+        return self
 
 
 @lru_cache

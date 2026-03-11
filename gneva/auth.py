@@ -38,8 +38,15 @@ def create_access_token(user_id: uuid.UUID, org_id: uuid.UUID, role: str) -> str
 
 
 def decode_token(token: str) -> dict:
+    """Decode and validate a JWT.  python-jose validates ``exp`` by default,
+    raising ``ExpiredSignatureError`` (a ``JWTError`` subclass) for expired tokens."""
     try:
-        return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[settings.algorithm],
+            options={"require_exp": True},
+        )
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 

@@ -11,6 +11,9 @@ import Calendar from './pages/Calendar'
 import ActionCenter from './pages/ActionCenter'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
+import TeamDynamics from './pages/TeamDynamics'
+import MeetingROI from './pages/MeetingROI'
+import FollowUps from './pages/FollowUps'
 
 interface User {
   id: string;
@@ -55,6 +58,9 @@ export default function App() {
         <Route path="/actions" element={<ActionCenter />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/dynamics" element={<TeamDynamics />} />
+        <Route path="/roi" element={<MeetingROI />} />
+        <Route path="/followups" element={<FollowUps />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>

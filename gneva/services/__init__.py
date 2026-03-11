@@ -1,7 +1,13 @@
 """Shared service utilities."""
 
+import asyncio
+import functools
+import logging
+
 import anthropic
 from gneva.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 _client = None
 
@@ -20,3 +26,54 @@ def get_anthropic_client():
             )
         _client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     return _client
+
+
+def retry_transient(max_retries: int = 2, base_delay: float = 1.0):
+    """Decorator that retries async functions on transient API errors.
+
+    Retries on timeouts, rate limits (429), and server errors (500+).
+    Uses exponential backoff: base_delay * 2^attempt (1s, 2s).
+    No new dependencies required.
+    """
+    def decorator(fn):
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):
+            last_exc = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return await fn(*args, **kwargs)
+                except Exception as exc:
+                    if not _is_transient(exc) or attempt >= max_retries:
+                        raise
+                    last_exc = exc
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(
+                        f"Transient error in {fn.__name__} (attempt {attempt + 1}/{max_retries + 1}), "
+                        f"retrying in {delay}s: {exc}"
+                    )
+                    await asyncio.sleep(delay)
+            raise last_exc  # should not reach here
+        return wrapper
+    return decorator
+
+
+def _is_transient(exc: Exception) -> bool:
+    """Check if an exception is a transient/retryable error."""
+    # Anthropic SDK specific errors
+    if isinstance(exc, anthropic.RateLimitError):
+        return True
+    if isinstance(exc, anthropic.InternalServerError):
+        return True
+    if isinstance(exc, anthropic.APITimeoutError):
+        return True
+    if isinstance(exc, anthropic.APIConnectionError):
+        return True
+    # Generic status code check for HTTP errors
+    status = getattr(exc, "status_code", None)
+    if status is not None:
+        if status == 429 or status >= 500:
+            return True
+    # Timeout errors
+    if isinstance(exc, (TimeoutError, asyncio.TimeoutError, ConnectionError)):
+        return True
+    return False

@@ -1,8 +1,12 @@
 """Auth endpoints: register, login, refresh."""
 
+import re
+import time
 import uuid
-from pydantic import BaseModel, EmailStr
-from fastapi import APIRouter, Depends, HTTPException
+from collections import defaultdict
+
+from pydantic import BaseModel, EmailStr, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,11 +17,37 @@ from gneva.auth import hash_password, verify_password, create_access_token, get_
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+# --------------- In-memory rate limiter ---------------
+_rate_limit_store: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(key: str, max_requests: int, window_seconds: int = 60) -> None:
+    """Raise 429 if *key* has exceeded *max_requests* within *window_seconds*."""
+    now = time.monotonic()
+    timestamps = _rate_limit_store[key]
+    # Prune expired entries
+    _rate_limit_store[key] = [t for t in timestamps if now - t < window_seconds]
+    if len(_rate_limit_store[key]) >= max_requests:
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    _rate_limit_store[key].append(now)
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     name: str
     org_name: str
+
+    @field_validator("password")
+    @classmethod
+    def _validate_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not re.search(r"[A-Za-z]", v):
+            raise ValueError("Password must contain at least one letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        return v
 
 
 class LoginRequest(BaseModel):
@@ -42,7 +72,9 @@ class UserResponse(BaseModel):
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(req: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(f"register:{client_ip}", max_requests=3)
     # Check if email already exists
     existing = await db.execute(select(User).where(User.email == req.email))
     if existing.scalar_one_or_none():
@@ -78,7 +110,9 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(f"login:{client_ip}", max_requests=5)
     result = await db.execute(select(User).where(User.email == req.email))
     user = result.scalar_one_or_none()
     if not user or not verify_password(req.password, user.password_hash):

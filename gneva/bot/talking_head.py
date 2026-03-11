@@ -17,9 +17,9 @@ FACES_DIR = Path(__file__).parent / "faces"
 
 # Voice ID → face image filename mapping
 VOICE_FACE_MAP: dict[str, str] = {
-    "EXAVITQu4vr4xnSDxMaL": "patel.jpg",   # Sarah — American, young, confident
-    "56bWURjYFHyYyVf490Dp": "emma.jpg",      # Emma — Australian, warm
-    "OUBnvvuqEKdDWtapoJFn": "patel.jpg",    # Tia Mirza — Indian accent (fallback)
+    "OUBnvvuqEKdDWtapoJFn": "patel.jpg",    # Patel — Indian accent (default)
+    "56bWURjYFHyYyVf490Dp": "emma.jpg",      # Emma — warm, friendly
+    "EXAVITQu4vr4xnSDxMaL": "emma.jpg",     # Sarah — fallback to Emma
 }
 
 # SadTalker checkpoint directory (configurable via env)

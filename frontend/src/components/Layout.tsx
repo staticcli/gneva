@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Brain, MessageCircle, LogOut, CalendarDays, CheckSquare, BarChart3, Settings, Bell } from 'lucide-react'
+import { Home, Brain, MessageCircle, LogOut, CalendarDays, CheckSquare, BarChart3, Settings, Bell, Users, TrendingUp, AlertCircle } from 'lucide-react'
 import { api } from '../api'
 import NotificationPanel from './NotificationPanel'
 
@@ -15,6 +15,9 @@ const NAV = [
   { path: '/calendar', label: 'Calendar', icon: CalendarDays },
   { path: '/actions', label: 'Actions', icon: CheckSquare },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { path: '/dynamics', label: 'Team Dynamics', icon: Users },
+  { path: '/roi', label: 'Meeting ROI', icon: TrendingUp },
+  { path: '/followups', label: 'Follow-ups', icon: AlertCircle },
   { path: '/memory', label: 'Memory', icon: Brain },
   { path: '/ask', label: 'Ask Gneva', icon: MessageCircle },
   { path: '/settings', label: 'Settings', icon: Settings },

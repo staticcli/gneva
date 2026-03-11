@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Video, Clock, Users, Sparkles, Volume2 } from 'lucide-react'
+import { Plus, Video, Clock, Users, Volume2, MessageCircle } from 'lucide-react'
 import { api } from '../api'
 
 interface Meeting {
@@ -22,6 +22,12 @@ interface Voice {
   is_default: boolean;
 }
 
+interface GreetingMode {
+  id: string;
+  label: string;
+  preview: string;
+}
+
 export default function Dashboard() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [showJoin, setShowJoin] = useState(false);
@@ -29,9 +35,10 @@ export default function Dashboard() {
   const [meetingTitle, setMeetingTitle] = useState('');
   const [botName, setBotName] = useState('Gneva');
   const [joining, setJoining] = useState(false);
-  const [loadingDemo, setLoadingDemo] = useState(false);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState('');
+  const [greetingModes, setGreetingModes] = useState<GreetingMode[]>([]);
+  const [selectedGreeting, setSelectedGreeting] = useState('personalized');
 
   useEffect(() => {
     api.meetings().then(r => setMeetings(r.meetings)).catch(console.error);
@@ -40,6 +47,9 @@ export default function Dashboard() {
       setVoices(v);
       const def = v.find((x: Voice) => x.is_default);
       if (def) setSelectedVoice(def.id);
+    }).catch(console.error);
+    api.greetingModes().then(r => {
+      setGreetingModes(r.modes || []);
     }).catch(console.error);
 
     // Poll for status updates only when there are active meetings
@@ -58,7 +68,7 @@ export default function Dashboard() {
     e.preventDefault();
     setJoining(true);
     try {
-      await api.joinMeeting(meetingUrl, 'auto', meetingTitle || undefined, botName || undefined, selectedVoice || undefined);
+      await api.joinMeeting(meetingUrl, 'auto', meetingTitle || undefined, botName || undefined, selectedVoice || undefined, selectedGreeting || undefined);
       setShowJoin(false);
       setMeetingUrl('');
       setMeetingTitle('');
@@ -91,25 +101,6 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-bold">Meetings</h2>
         <div className="flex gap-3">
-          <button
-            onClick={async () => {
-              setLoadingDemo(true);
-              try {
-                await api.createDemoMeeting();
-                const r = await api.meetings();
-                setMeetings(r.meetings);
-              } catch (err: any) {
-                alert(err.message);
-              } finally {
-                setLoadingDemo(false);
-              }
-            }}
-            disabled={loadingDemo}
-            className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-          >
-            <Sparkles size={18} />
-            {loadingDemo ? 'Processing with AI...' : 'Load Demo Meeting'}
-          </button>
           <button
             onClick={() => setShowJoin(true)}
             className="flex items-center gap-2 bg-gneva-600 text-white px-4 py-2 rounded-lg hover:bg-gneva-700 transition-colors"
@@ -148,7 +139,7 @@ export default function Dashboard() {
               className="w-full px-4 py-2.5 border rounded-lg mb-3 focus:ring-2 focus:ring-gneva-500 outline-none"
             />
             {voices.length > 0 && (
-              <div className="mb-4">
+              <div className="mb-3">
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-600 mb-1.5">
                   <Volume2 size={14} />
                   Voice
@@ -166,6 +157,43 @@ export default function Dashboard() {
                 </select>
               </div>
             )}
+            <div className="mb-4">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-gray-600 mb-1.5">
+                <MessageCircle size={14} />
+                Greeting Style
+              </label>
+              <select
+                value={selectedGreeting}
+                onChange={e => setSelectedGreeting(e.target.value)}
+                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-gneva-500 outline-none bg-white text-sm"
+              >
+                {greetingModes.length > 0 ? (
+                  greetingModes.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="personalized">Personalized (AI picks based on memory)</option>
+                    <option value="professional">Professional</option>
+                    <option value="casual">Casual & Friendly</option>
+                    <option value="energetic">Energetic & Pumped</option>
+                    <option value="funny">Funny / Sarcastic</option>
+                    <option value="monday">Monday Vibes</option>
+                    <option value="friday">Friday Energy</option>
+                    <option value="standup">Standup / Daily Sync</option>
+                    <option value="silent">Silent (Client Mode)</option>
+                  </>
+                )}
+              </select>
+              {selectedGreeting !== 'personalized' && selectedGreeting !== 'silent' && (
+                <p className="text-xs text-gray-400 mt-1 italic">
+                  {greetingModes.find(m => m.id === selectedGreeting)?.preview || ''}
+                </p>
+              )}
+              {selectedGreeting === 'silent' && (
+                <p className="text-xs text-amber-500 mt-1">Gneva will join silently — ideal for client meetings</p>
+              )}
+            </div>
             <div className="flex gap-3">
               <button
                 type="button"
@@ -209,7 +237,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
                       <Clock size={14} />
-                      {new Date(m.created_at).toLocaleDateString()}
+                      {new Date(m.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
                     </span>
                     {m.duration_sec && (
                       <span>{formatDuration(m.duration_sec)}</span>
