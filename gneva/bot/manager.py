@@ -170,8 +170,8 @@ class BotManager:
 
         bot = BrowserBot(
             meeting_url=meeting_url,
-            bot_name="Gneva Observer",
-            consent_message="Gneva is observing this meeting for notes and screen awareness.",
+            bot_name="Raj",
+            consent_message="",
             audio_dir=self.audio_dir,
             lobby_timeout=self.lobby_timeout,
             max_duration=self.max_duration,

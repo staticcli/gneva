@@ -313,6 +313,13 @@ class BrowserBot:
         if self.visual_only:
             self.status_message = "In meeting — visual-only mode (screen + captions)"
             logger.info(f"Bot {self.bot_id}: visual-only mode — no conversation engine or audio")
+            # Mute mic and turn off camera — we're just observing
+            try:
+                await self._driver.ensure_muted()
+                await self._driver.ensure_camera_off()
+                logger.info(f"Bot {self.bot_id}: mic muted, camera off (visual-only)")
+            except Exception as e:
+                logger.warning(f"Bot {self.bot_id}: could not mute/disable camera: {e}")
         else:
             self.status_message = "In meeting — starting conversation engine..."
 
