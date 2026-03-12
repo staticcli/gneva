@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     # Anthropic
     anthropic_api_key: str = ""
+    llm_max_concurrency: int = 5  # max parallel LLM calls (agent deliberation, etc.)
 
     # Local LLM (Ollama)
     ollama_url: str = "http://localhost:11434"
@@ -49,6 +50,24 @@ class Settings(BaseSettings):
     # ElevenLabs (Stage 4+)
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
+
+    # Azure Communication Services (ACS) — legacy, replaced by C# media bot
+    acs_connection_string: str = ""
+
+    # ElevenLabs Conversational AI (phone dial-in for Teams)
+    elevenlabs_agent_id: str = ""  # ElevenLabs ConvAI agent ID
+    elevenlabs_phone_number_id: str = ""  # ElevenLabs phone number resource ID
+
+    # Twilio (for outbound calls with DTMF support)
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_phone_number: str = ""  # E.164 format, e.g. "+19047858101"
+    app_base_url: str = ""  # Public URL for TwiML webhook, e.g. "https://yourdomain.com"
+
+    # Deepgram (optional cloud STT — lower latency than local Whisper)
+    deepgram_api_key: str = ""
+    stt_backend: str = "whisper"  # "whisper" (local) or "deepgram" (cloud)
+    stt_model_size: str = "base"  # Whisper model: "tiny", "base", "small"
 
     # TTS (Stage 4)
     tts_backend: str = "piper"  # piper or elevenlabs
@@ -85,6 +104,9 @@ class Settings(BaseSettings):
     # Calendar
     google_calendar_enabled: bool = False
     outlook_calendar_enabled: bool = False
+
+    # Web Search (Brave Search API — free tier: 2000 queries/month)
+    brave_search_api_key: str = ""
 
     # Webhook
     webhook_secret: str = ""

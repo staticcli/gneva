@@ -1,9 +1,9 @@
 # Gneva — Product Requirements Document
 
-**Version:** 1.0
-**Date:** 2026-03-10
+**Version:** 2.0
+**Date:** 2026-03-11
 **Author:** Solo Founder
-**Status:** Draft
+**Status:** Approved for Implementation
 
 ---
 
@@ -111,7 +111,7 @@ Gneva occupies the only empty quadrant: **Organization-wide + Active participati
 
 ## PRD Document Index
 
-This PRD is structured across 5 companion documents:
+This PRD is structured across 6 companion documents:
 
 | Document | Description |
 |----------|-------------|
@@ -120,12 +120,57 @@ This PRD is structured across 5 companion documents:
 | [Security Architecture](security-architecture.md) | Encryption, auth, compliance, threat model, on-prem |
 | [Product Design & UX](product-design.md) | Personas, user journeys, screens, @Gneva interactions |
 | [GTM & Business Strategy](gtm-strategy.md) | Market sizing, pricing, financials, roadmap |
+| [**Multi-Agent Architecture**](multi-agent-architecture.md) | **16 agents, 207 tools, voice engineering, memory architecture, coordination patterns, compliance** |
 
 ---
 
-## MVP Scope (Stage 1: Silent Observer)
+## Current Implementation Status
 
-**Timeline:** 8-10 weeks
+### Already Built (Stages 1-4 Partial)
+- Browser-based meeting bot (Playwright, Teams/Meet/Zoom)
+- Real-time transcription with speaker diarization
+- Avatar system with circular Teams-style rendering (Tia face)
+- TTS voice output (ElevenLabs / Piper)
+- Conversation engine with enterprise-grade human-like prompts
+- Tool use / function calling (9 tools: action items, memory, bookmarks, screen, web search, research, URL fetch)
+- Screen/document awareness (ScreenCaptureEngine with Haiku vision)
+- Follow-up tracking (speaker detection, overdue item queuing, natural delivery)
+- External research tools (Brave Search API, quick_research, fetch_url)
+- Web dashboard (React frontend)
+- Pipeline: Whisper transcription, Claude summarization, embeddings
+
+### Next Phase: Multi-Agent Architecture
+See [Multi-Agent Architecture](multi-agent-architecture.md) for the complete specification:
+- 16 specialized agents with distinct personalities and tool sets
+- 207 tools across all agents
+- Voice & personality engineering optimized for TTS
+- Emotional intelligence layer with real-time sentiment detection
+- 5-tier memory architecture with privacy isolation
+- 6 multi-agent coordination patterns (handoff, deliberation, swarm, silent network, preparation, post-meeting)
+- Inter-agent communication bus with confidence-weighted consensus
+- 50+ test scenarios (unit, integration, behavioral, multi-agent, adversarial)
+- 5-dimension evaluation rubric with monthly calibration
+- Full compliance framework (GDPR, EU AI Act, SOC 2, HIPAA, jurisdiction-specific consent)
+
+### Implementation Phases
+
+| Phase | What |
+|---|---|
+| 1 | Agent profiles DB model + API, agent assignment to meetings |
+| 2 | Multi-agent join, basic agent routing |
+| 3 | Agent-to-agent communication bus, deliberation protocol |
+| 4 | 6 core agents fully tooled (Tia, Vex, Prism, Echo, Sage, Nexus) |
+| 5 | 5 domain specialists (Cipher, Forge, Shield, Ledger, Pulse) |
+| 6 | 5 new specialists (Atlas, Helix, Orbit, Spark, Quantum) |
+| 7 | Swarm mode, memory mesh, cross-meeting intelligence |
+| 8 | Autonomous actions, pre/post meeting intelligence |
+| 9 | Agent training, customization, performance analytics |
+
+---
+
+## Original MVP Scope (Stage 1: Silent Observer)
+
+**Timeline:** 8-10 weeks (COMPLETED)
 
 **In scope:**
 - Calendar integration (Google Calendar, Outlook)
@@ -139,7 +184,7 @@ This PRD is structured across 5 companion documents:
 - User authentication (email + password, Google OAuth)
 
 **Out of scope for MVP:**
-- Voice participation (Stage 4)
+- Voice participation (Stage 4) — NOW BUILT
 - Slack/Teams integration (Stage 3)
 - On-premise deployment
 - Team/org features

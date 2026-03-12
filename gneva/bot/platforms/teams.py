@@ -58,15 +58,88 @@ S = {
 class TeamsDriver(BasePlatformDriver):
     """Microsoft Teams Web client meeting automation — classic + light-meetings."""
 
+    def _update_status(self, msg: str):
+        """Update the bot's status_message if we have a reference to the bot."""
+        if hasattr(self, '_bot') and self._bot:
+            self._bot.status_message = msg
+
     async def join(self, meeting_url: str) -> bool:
         self.logger.info(f"Joining Teams meeting: {meeting_url}")
+        self._update_status("Loading Teams meeting page...")
 
-        # Block Teams from opening the desktop app via protocol handler
-        await self.page.route("msteams://**", lambda route: route.abort())
-        await self.page.route("ms-teams://**", lambda route: route.abort())
+        # Inject JS BEFORE navigation to block protocol handlers (msteams://, ms-teams://)
+        # This prevents the OS-level "open Teams app?" popup
+        await self.page.add_init_script("""
+            // Block msteams:// protocol navigations
+            const origAssign = Object.getOwnPropertyDescriptor(Location.prototype, 'assign');
+            const origReplace = Object.getOwnPropertyDescriptor(Location.prototype, 'replace');
+            const origHref = Object.getOwnPropertyDescriptor(Location.prototype, 'href');
 
-        # Block popup windows (Teams "open in app" dialogs)
-        self.page.on("popup", lambda popup: asyncio.ensure_future(popup.close()))
+            function blockProtocol(url) {
+                if (typeof url === 'string' && (url.startsWith('msteams:') || url.startsWith('ms-teams:'))) {
+                    console.log('[Gneva] Blocked protocol navigation:', url.substring(0, 30));
+                    return true;
+                }
+                return false;
+            }
+
+            // Override window.open to block protocol URLs
+            const origOpen = window.open;
+            window.open = function(url, ...args) {
+                if (blockProtocol(url)) return null;
+                return origOpen.call(this, url, ...args);
+            };
+
+            // Override location.href setter
+            if (origHref && origHref.set) {
+                Object.defineProperty(Location.prototype, 'href', {
+                    get: origHref.get,
+                    set: function(url) {
+                        if (blockProtocol(url)) return;
+                        origHref.set.call(this, url);
+                    },
+                    configurable: true,
+                });
+            }
+
+            // Override location.assign
+            if (origAssign && origAssign.value) {
+                Location.prototype.assign = function(url) {
+                    if (blockProtocol(url)) return;
+                    origAssign.value.call(this, url);
+                };
+            }
+
+            // Override location.replace
+            if (origReplace && origReplace.value) {
+                Location.prototype.replace = function(url) {
+                    if (blockProtocol(url)) return;
+                    origReplace.value.call(this, url);
+                };
+            }
+
+            // Block iframe-based protocol launches
+            const origCreateElement = document.createElement.bind(document);
+            document.createElement = function(tag, ...args) {
+                const el = origCreateElement(tag, ...args);
+                if (tag.toLowerCase() === 'iframe') {
+                    const origSrcDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
+                    if (origSrcDesc) {
+                        Object.defineProperty(el, 'src', {
+                            get: origSrcDesc.get,
+                            set: function(url) {
+                                if (blockProtocol(url)) return;
+                                origSrcDesc.set.call(this, url);
+                            },
+                            configurable: true,
+                        });
+                    }
+                }
+                return el;
+            };
+
+            console.log('[Gneva] Protocol handler blocker installed');
+        """)
 
         await self.page.goto(meeting_url, wait_until="domcontentloaded", timeout=30000)
         await asyncio.sleep(3)
@@ -76,12 +149,14 @@ class TeamsDriver(BasePlatformDriver):
         await asyncio.sleep(1)
 
         # Click "Continue on this browser" to use web client
+        self._update_status("Selecting web browser client...")
         if await self._click_if_visible(S["continue_browser"], timeout=8000):
             self.logger.info("Selected web browser client")
         else:
             self.logger.warning("Could not find 'Continue on browser' — trying to proceed")
 
         # Light-meetings takes longer to load (~15-20s)
+        self._update_status("Waiting for pre-join screen...")
         self.logger.info("Waiting for pre-join screen to load...")
         await asyncio.sleep(15)
 
@@ -114,6 +189,7 @@ class TeamsDriver(BasePlatformDriver):
             await asyncio.sleep(1)
 
         # Enter bot name
+        self._update_status(f"Entering name: {self.bot_name}...")
         if await self._fill_if_visible(S["name_input"], self.bot_name, timeout=5000):
             self.logger.info(f"Entered name: {self.bot_name}")
         else:
@@ -122,6 +198,7 @@ class TeamsDriver(BasePlatformDriver):
         await asyncio.sleep(1)
 
         # Click "Join now"
+        self._update_status("Clicking Join Now...")
         if not await self._click_if_visible(S["join_button"], timeout=5000):
             # One more check — maybe we got auto-joined while setting up
             if await self._is_already_in_meeting():
@@ -131,12 +208,14 @@ class TeamsDriver(BasePlatformDriver):
             self.logger.error("Could not find join button")
             return False
 
+        self._update_status("Joined — configuring audio...")
         self.logger.info("Clicked join — may be in lobby")
         await asyncio.sleep(5)
 
         # Ensure mic muted (keep camera ON for avatar)
         await self.ensure_muted()
 
+        self._update_status("Successfully joined Teams meeting!")
         self.logger.info("Successfully joined Teams meeting")
         return True
 

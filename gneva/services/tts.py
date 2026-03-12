@@ -78,6 +78,24 @@ class TTSService:
                 logger.warning(f"Piper failed ({e}), falling back to edge-tts")
                 return await self._synthesize_edge(text)
 
+    async def synthesize_fast(self, text: str) -> bytes:
+        """Fast synthesis path — skips validation overhead for short sentences."""
+        if not text or not text.strip():
+            return b""
+        text = text.replace("\x00", "")[:2000]  # shorter limit for fast path
+
+        if self._backend == "elevenlabs" and self._el_key:
+            try:
+                result = await self._synthesize_elevenlabs(text)
+                TTSService._elevenlabs_failures = 0
+                return result
+            except Exception as e:
+                TTSService._elevenlabs_failures += 1
+                logger.warning(f"ElevenLabs fast failed ({e}), falling back to edge-tts")
+                return await self._synthesize_edge(text)
+        else:
+            return await self._synthesize_edge(text)
+
     async def _synthesize_edge(self, text: str) -> bytes:
         """Synthesize using Microsoft Edge TTS (free, no API key required)."""
         import edge_tts
@@ -129,7 +147,7 @@ class TTSService:
             Path(out_path).unlink(missing_ok=True)
 
     async def _synthesize_elevenlabs(self, text: str, voice: str = "gneva") -> bytes:
-        """Synthesize using ElevenLabs cloud API."""
+        """Synthesize using ElevenLabs cloud API with streaming for lower latency."""
         if not self._el_key:
             raise RuntimeError("elevenlabs_api_key not configured")
 
@@ -139,11 +157,10 @@ class TTSService:
 
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{ELEVENLABS_API}/text-to-speech/{voice_id}",
+                f"{ELEVENLABS_API}/text-to-speech/{voice_id}/stream",
                 headers={
                     "xi-api-key": self._el_key,
                     "Content-Type": "application/json",
-                    "Accept": "audio/wav",
                 },
                 json={
                     "text": text,
@@ -154,8 +171,9 @@ class TTSService:
                         "style": 0.0,
                         "use_speaker_boost": True,
                     },
+                    "output_format": "mp3_22050_32",
                 },
-                timeout=30,
+                timeout=15,
             )
             if resp.status_code != 200:
                 logger.error("ElevenLabs error %d: %s", resp.status_code, resp.text[:200])

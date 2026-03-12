@@ -11,6 +11,21 @@ logger = logging.getLogger(__name__)
 
 _client = None
 
+# Concurrency limiter for LLM calls — prevents flooding the Anthropic API
+# when multiple agents make parallel requests (deliberation, broadcast, etc.).
+# Default: 5 concurrent requests. Override via LLM_MAX_CONCURRENCY env var.
+_llm_semaphore: asyncio.Semaphore | None = None
+
+
+def _get_llm_semaphore() -> asyncio.Semaphore:
+    """Lazily create the LLM concurrency semaphore (must be called in an async context)."""
+    global _llm_semaphore
+    if _llm_semaphore is None:
+        settings = get_settings()
+        max_concurrent = int(getattr(settings, "llm_max_concurrency", 5) or 5)
+        _llm_semaphore = asyncio.Semaphore(max_concurrent)
+    return _llm_semaphore
+
 
 def get_anthropic_client():
     """Return a lazily-initialized shared Anthropic client singleton.
@@ -26,6 +41,30 @@ def get_anthropic_client():
             )
         _client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     return _client
+
+
+async def llm_create(**kwargs) -> "anthropic.types.Message":
+    """Concurrency-limited LLM call. Drop-in replacement for client.messages.create.
+
+    Usage:
+        from gneva.services import llm_create
+        response = await llm_create(model="claude-sonnet-4-6", max_tokens=300,
+                                     system="...", messages=[...])
+    """
+    sem = _get_llm_semaphore()
+    client = get_anthropic_client()
+    async with sem:
+        return await asyncio.to_thread(client.messages.create, **kwargs)
+
+
+async def llm_analyze(prompt: str, system: str, model: str = "claude-haiku-4-5-20251001",
+                      max_tokens: int = 300) -> str:
+    """Shared LLM analysis helper used by agent tools and specialist tools."""
+    response = await llm_create(
+        model=model, max_tokens=max_tokens, system=system,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.content[0].text.strip() if response.content else "No analysis generated."
 
 
 def retry_transient(max_retries: int = 2, base_delay: float = 1.0):

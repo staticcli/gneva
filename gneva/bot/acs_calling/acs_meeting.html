@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gneva ACS Meeting</title>
+    <style>
+        body { background: #1a1a2e; color: #e0e0e0; font-family: monospace; padding: 20px; }
+        #status { font-size: 18px; margin: 10px 0; }
+        #log { background: #0f0f23; padding: 10px; max-height: 400px; overflow-y: auto; font-size: 12px; }
+        .ok { color: #0f0; } .err { color: #f44; } .info { color: #4af; }
+    </style>
+</head>
+<body>
+    <h2>Gneva ACS Calling</h2>
+    <div id="status" class="info">Loading SDK...</div>
+    <div id="log"></div>
+    <script src="dist/acs_calling_bundle.js"></script>
+    <script>
+        const logEl = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+        const origLog = console.log;
+        const origErr = console.error;
+        const origWarn = console.warn;
+
+        function appendLog(msg, cls) {
+            const d = document.createElement('div');
+            d.className = cls || '';
+            d.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+            logEl.appendChild(d);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        console.log = (...args) => { origLog(...args); appendLog(args.join(' '), 'ok'); };
+        console.error = (...args) => { origErr(...args); appendLog('ERROR: ' + args.join(' '), 'err'); };
+        console.warn = (...args) => { origWarn(...args); appendLog('WARN: ' + args.join(' '), 'info'); };
+
+        // Wait for config from Playwright
+        async function init() {
+            statusEl.textContent = 'Waiting for config...';
+            // Playwright will set window.__gnevaConfig before loading this page
+            // or call window.__gnevaACS.join(config) directly
+            if (window.__gnevaConfig) {
+                statusEl.textContent = 'Joining meeting...';
+                try {
+                    await window.__gnevaACS.join(window.__gnevaConfig);
+                    statusEl.textContent = 'Connected!';
+                    statusEl.className = 'ok';
+                } catch (err) {
+                    statusEl.textContent = 'Failed: ' + err.message;
+                    statusEl.className = 'err';
+                }
+            } else {
+                statusEl.textContent = 'Ready — call window.__gnevaACS.join(config)';
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

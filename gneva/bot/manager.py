@@ -3,10 +3,22 @@
 import asyncio
 import logging
 from datetime import datetime
+from typing import Union
 
 from gneva.bot.browser_bot import BrowserBot, BotState
 
 logger = logging.getLogger(__name__)
+
+
+def _should_use_acs() -> bool:
+    """Check if ACS Calling SDK should be used instead of browser caption scraping."""
+    try:
+        from gneva.config import get_settings
+        settings = get_settings()
+        # ACS Calling SDK needs a connection string for identity/token generation
+        return bool(settings.acs_connection_string)
+    except Exception:
+        return False
 
 
 class BotManager:
@@ -28,13 +40,14 @@ class BotManager:
         self.lobby_timeout = lobby_timeout
         self.max_duration = max_duration
 
-        self._bots: dict[str, BrowserBot] = {}
+        self._bots: dict[str, Union[BrowserBot, "ACSBot"]] = {}
         self._tasks: dict[str, asyncio.Task] = {}
         self._playwright = None
         self._started = False
+        self._use_acs = _should_use_acs()
 
     async def start(self):
-        """Initialize Playwright."""
+        """Initialize Playwright (needed for both browser bot and ACS Calling SDK)."""
         if self._started:
             return
 
@@ -42,7 +55,11 @@ class BotManager:
         self._pw_context = async_playwright()
         self._playwright = await self._pw_context.start()
         self._started = True
-        logger.info("BotManager started — Playwright initialized")
+
+        if self._use_acs:
+            logger.info("BotManager started — using ACS Calling SDK (real audio, Playwright for SDK runtime)")
+        else:
+            logger.info("BotManager started — using browser caption scraping (Playwright)")
 
     async def stop(self):
         """Stop all bots and cleanup Playwright."""
@@ -107,7 +124,7 @@ class BotManager:
         if active >= self.max_concurrent:
             raise RuntimeError(f"Max concurrent bots ({self.max_concurrent}) reached")
 
-        bot = BrowserBot(
+        bot_kwargs = dict(
             meeting_url=meeting_url,
             bot_name=bot_name or self.bot_name,
             consent_message=self.consent_message,
@@ -120,6 +137,15 @@ class BotManager:
             org_id=org_id,
             greeting_mode=greeting_mode,
         )
+
+        if self._use_acs:
+            from gneva.bot.acs_calling_bot import ACSCallingBot
+            bot = ACSCallingBot(**bot_kwargs)
+            logger.info(f"Using ACSCallingBot (real audio) for {meeting_url}")
+        else:
+            bot = BrowserBot(**bot_kwargs)
+            logger.info(f"Using BrowserBot (caption scraping) for {meeting_url}")
+
         bot.on_state_change = self._on_bot_state_change
 
         self._bots[bot.bot_id] = bot
@@ -127,6 +153,41 @@ class BotManager:
         self._tasks[bot.bot_id] = task
 
         logger.info(f"Bot {bot.bot_id} launched for {meeting_url}")
+        return bot.bot_id
+
+    async def join_visual_only(
+        self,
+        meeting_url: str,
+        meeting_id: str | None = None,
+        org_id: str | None = None,
+    ) -> str:
+        """Launch a visual-only browser bot (no audio/TTS — just captions + screen capture).
+
+        Used alongside Twilio phone dial-in: phone handles voice, browser handles eyes.
+        """
+        if not self._started:
+            await self.start()
+
+        bot = BrowserBot(
+            meeting_url=meeting_url,
+            bot_name="Gneva Observer",
+            consent_message="Gneva is observing this meeting for notes and screen awareness.",
+            audio_dir=self.audio_dir,
+            lobby_timeout=self.lobby_timeout,
+            max_duration=self.max_duration,
+            meeting_id=meeting_id,
+            on_complete=None,  # No pipeline trigger — phone side handles that
+            org_id=org_id,
+            greeting_mode="silent",
+            visual_only=True,
+        )
+        bot.on_state_change = self._on_bot_state_change
+
+        self._bots[bot.bot_id] = bot
+        task = asyncio.create_task(self._run_bot(bot))
+        self._tasks[bot.bot_id] = task
+
+        logger.info(f"Visual-only bot {bot.bot_id} launched for {meeting_url}")
         return bot.bot_id
 
     async def leave(self, bot_id: str):
@@ -182,10 +243,10 @@ class BotManager:
         except Exception as e:
             logger.warning(f"Failed to update meeting status: {e}")
 
-    async def _run_bot(self, bot: BrowserBot):
+    async def _run_bot(self, bot):
         """Run a bot as a background task."""
         try:
-            await bot.run(self._playwright)
+            await bot.run(self._playwright)  # ACSBot ignores the playwright arg
         except Exception as e:
             logger.error(f"Bot {bot.bot_id} task error: {e}", exc_info=True)
         finally:

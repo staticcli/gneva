@@ -35,6 +35,10 @@ from gneva.api.roi import router as roi_router
 from gneva.api.followups import router as followups_router
 from gneva.api.dynamics import router as dynamics_router
 from gneva.api.contradictions import router as contradictions_router
+from gneva.api.agents import router as agents_router
+from gneva.api.acs import router as acs_router
+from gneva.bot.twilio_dialin import router as twilio_router
+from gneva.api.elevenlabs_tools import router as el_tools_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -62,6 +66,14 @@ async def lifespan(app: FastAPI):
         logger.info("Database indexes applied")
     except Exception as e:
         logger.warning(f"Database index creation failed: {e}")
+
+    # Seed builtin agent profiles
+    try:
+        from gneva.bot.agent_router import seed_builtin_agents
+        agent_count = await seed_builtin_agents()
+        logger.info(f"Startup: {agent_count} builtin agent profiles ready")
+    except Exception as e:
+        logger.warning(f"Agent profile seeding failed: {e}")
 
     try:
         await bot_manager.start()
@@ -156,10 +168,25 @@ app.include_router(slack_router)
 app.include_router(realtime_router)
 app.include_router(pm_router)
 app.include_router(settings_router)
+
+# Serve ACS Calling SDK static files (HTML + JS bundle)
+try:
+    from pathlib import Path
+    from starlette.staticfiles import StaticFiles
+    acs_calling_dir = Path(__file__).parent / "bot" / "acs_calling"
+    if acs_calling_dir.exists():
+        app.mount("/acs-calling", StaticFiles(directory=str(acs_calling_dir)), name="acs-calling")
+        logger.info(f"Mounted ACS Calling SDK static files at /acs-calling")
+except Exception as e:
+    logger.debug(f"ACS calling static mount skipped: {e}")
 app.include_router(roi_router)
 app.include_router(followups_router)
 app.include_router(dynamics_router)
 app.include_router(contradictions_router)
+app.include_router(agents_router)
+app.include_router(acs_router)
+app.include_router(twilio_router)
+app.include_router(el_tools_router)
 
 
 @app.get("/health")

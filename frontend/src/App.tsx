@@ -14,6 +14,7 @@ import Settings from './pages/Settings'
 import TeamDynamics from './pages/TeamDynamics'
 import MeetingROI from './pages/MeetingROI'
 import FollowUps from './pages/FollowUps'
+import Agents from './pages/Agents'
 
 interface User {
   id: string;
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="/dynamics" element={<TeamDynamics />} />
         <Route path="/roi" element={<MeetingROI />} />
         <Route path="/followups" element={<FollowUps />} />
+        <Route path="/agents" element={<Agents />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>

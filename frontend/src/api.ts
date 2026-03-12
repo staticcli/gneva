@@ -49,8 +49,8 @@ export const api = {
   meetingDecisions: (id: string) => request(`/api/meetings/${id}/decisions`),
 
   // Bot
-  joinMeeting: (meeting_url: string, _platform: string, title?: string, bot_name?: string, voice_id?: string, greeting_mode?: string) =>
-    request('/api/bot/join', { method: 'POST', body: JSON.stringify({ meeting_url, platform: 'auto', meeting_title: title, bot_name, voice_id, greeting_mode }) }),
+  joinMeeting: (meeting_url: string, _platform: string, title?: string, bot_name?: string, voice_id?: string, greeting_mode?: string, meeting_info?: string) =>
+    request('/api/bot/join', { method: 'POST', body: JSON.stringify({ meeting_url, platform: 'auto', meeting_title: title, bot_name, voice_id, greeting_mode, meeting_info }) }),
   greetingModes: () => request('/api/bot/greeting-modes'),
   leaveMeeting: (bot_id: string) =>
     request('/api/bot/leave', { method: 'POST', body: JSON.stringify({ bot_id }) }),
@@ -129,6 +129,22 @@ export const api = {
   patterns: () => request('/api/analytics/patterns'),
   dismissPattern: (id: string) => request(`/api/analytics/patterns/${id}/dismiss`, { method: 'POST' }),
   trends: () => request('/api/analytics/trends'),
+
+  // Agents
+  agents: (category?: string) => request(`/api/agents${category ? `?category=${category}` : ''}`),
+  agent: (name: string) => request(`/api/agents/${name}`),
+  createAgent: (data: any) => request('/api/agents', { method: 'POST', body: JSON.stringify(data) }),
+  updateAgent: (name: string, data: any) => request(`/api/agents/${name}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAgent: (name: string) => request(`/api/agents/${name}`, { method: 'DELETE' }),
+  meetingAgents: (meetingId: string) => request(`/api/agents/meetings/${meetingId}/agents`),
+  assignAgent: (meetingId: string, data: { agent_name?: string; agent_id?: string; mode?: string }) =>
+    request(`/api/agents/meetings/${meetingId}/assign`, { method: 'POST', body: JSON.stringify(data) }),
+  removeAgentFromMeeting: (meetingId: string, agentName: string) =>
+    request(`/api/agents/meetings/${meetingId}/agents/${agentName}`, { method: 'DELETE' }),
+  agentPerformance: (name: string, days?: number) =>
+    request(`/api/agents/${name}/performance${days ? `?days=${days}` : ''}`),
+  agentMessages: (meetingId: string, agentName?: string) =>
+    request(`/api/agents/meetings/${meetingId}/messages${agentName ? `?agent_name=${agentName}` : ''}`),
 
   // PM / Follow-ups
   followUps: () => request('/api/pm/follow-ups'),

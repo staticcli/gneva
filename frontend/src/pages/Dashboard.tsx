@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Video, Clock, Users, Volume2, MessageCircle } from 'lucide-react'
+import { Plus, Video, Clock, Users, Volume2, MessageCircle, Phone } from 'lucide-react'
 import { api } from '../api'
 
 interface Meeting {
@@ -32,9 +32,11 @@ export default function Dashboard() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [showJoin, setShowJoin] = useState(false);
   const [meetingUrl, setMeetingUrl] = useState('');
+  const [meetingInfo, setMeetingInfo] = useState('');
   const [meetingTitle, setMeetingTitle] = useState('');
   const [botName, setBotName] = useState('Gneva');
   const [joining, setJoining] = useState(false);
+  const [joinProgress, setJoinProgress] = useState<{botId: string; status: string; message: string} | null>(null);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState('');
   const [greetingModes, setGreetingModes] = useState<GreetingMode[]>([]);
@@ -67,16 +69,46 @@ export default function Dashboard() {
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setJoining(true);
+    setJoinProgress({ botId: '', status: 'sending', message: 'Sending join request...' });
     try {
-      await api.joinMeeting(meetingUrl, 'auto', meetingTitle || undefined, botName || undefined, selectedVoice || undefined, selectedGreeting || undefined);
+      const res = await api.joinMeeting(meetingUrl, 'auto', meetingTitle || undefined, botName || undefined, selectedVoice || undefined, selectedGreeting || undefined, meetingInfo || undefined);
+      const botId = res.bot_id;
       setShowJoin(false);
       setMeetingUrl('');
+      setMeetingInfo('');
       setMeetingTitle('');
-      // Refresh meetings list
+      setJoinProgress({ botId, status: 'joining', message: 'Launching browser...' });
+
+      // Poll bot status for live updates
+      const pollStatus = setInterval(async () => {
+        try {
+          const s = await api.botStatus(botId);
+          setJoinProgress({ botId, status: s.state, message: s.status_message || s.state });
+          // Stop polling when bot is active or failed
+          if (s.state === 'recording' || s.state === 'in_meeting' || s.state === 'failed' || s.state === 'ended') {
+            clearInterval(pollStatus);
+            // Auto-hide progress after 3s once active
+            if (s.state === 'recording' || s.state === 'in_meeting') {
+              setTimeout(() => setJoinProgress(null), 3000);
+            }
+            // Auto-hide failed after 5s
+            if (s.state === 'failed') {
+              setTimeout(() => setJoinProgress(null), 5000);
+            }
+          }
+        } catch {
+          // Bot may not be found yet or was cleaned up
+        }
+      }, 1500);
+
+      // Safety: stop polling after 2 minutes
+      setTimeout(() => { clearInterval(pollStatus); }, 120000);
+
       const r = await api.meetings();
       setMeetings(r.meetings);
     } catch (err: any) {
-      alert(err.message);
+      setJoinProgress({ botId: '', status: 'failed', message: err.message });
+      setTimeout(() => setJoinProgress(null), 5000);
     } finally {
       setJoining(false);
     }
@@ -114,15 +146,49 @@ export default function Dashboard() {
       {/* Join meeting modal */}
       {showJoin && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <form onSubmit={handleJoin} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <form onSubmit={handleJoin} className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
             <h3 className="text-lg font-bold mb-4">Send Gneva to a meeting</h3>
+
+            {/* Call-In Info — paste Teams meeting info */}
+            <div className="mb-3">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-gray-600 mb-1.5">
+                <Phone size={14} />
+                Teams Call-In Info
+              </label>
+              <textarea
+                placeholder={"Paste Teams meeting info here (from \"Copy meeting info\" button).\nGneva will extract the dial-in number, conference ID, and meeting URL automatically."}
+                value={meetingInfo}
+                onChange={e => {
+                  setMeetingInfo(e.target.value);
+                  // Auto-extract URL from pasted text if URL field is empty
+                  const urlMatch = e.target.value.match(/https:\/\/teams\.microsoft\.com\/\S+/);
+                  if (urlMatch && !meetingUrl) {
+                    setMeetingUrl(urlMatch[0].replace(/\)$/, ''));
+                  }
+                }}
+                rows={4}
+                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-gneva-500 outline-none text-sm font-mono resize-none"
+              />
+              {meetingInfo && (
+                <p className="text-xs text-green-600 mt-1">
+                  {meetingInfo.match(/\+[\d\s\-()]+,,\d/) ? 'Dial-in number and conference ID detected' :
+                   meetingInfo.match(/\+\d[\d\s\-()]{7,}/) ? 'Phone number detected' : 'Parsing...'}
+                  {meetingInfo.match(/teams\.microsoft\.com/) ? ' + Teams URL found' : ''}
+                </p>
+              )}
+            </div>
+
+            <div className="relative mb-3">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+              <div className="relative flex justify-center text-xs"><span className="bg-white px-2 text-gray-400">or enter URL directly</span></div>
+            </div>
+
             <input
               type="url"
               placeholder="Meeting URL (Zoom, Meet, or Teams)"
               value={meetingUrl}
               onChange={e => setMeetingUrl(e.target.value)}
               className="w-full px-4 py-2.5 border rounded-lg mb-3 focus:ring-2 focus:ring-gneva-500 outline-none"
-              required
             />
             <input
               type="text"
@@ -204,13 +270,47 @@ export default function Dashboard() {
               </button>
               <button
                 type="submit"
-                disabled={joining}
+                disabled={joining || (!meetingUrl && !meetingInfo)}
                 className="flex-1 bg-gneva-600 text-white px-4 py-2 rounded-lg hover:bg-gneva-700 disabled:opacity-50"
               >
-                {joining ? 'Joining...' : 'Send Gneva'}
+                {joining ? 'Joining...' : meetingInfo ? 'Dial In' : 'Send Gneva'}
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Join progress indicator */}
+      {joinProgress && (
+        <div className={`mb-4 rounded-xl p-4 border ${
+          joinProgress.status === 'failed' ? 'bg-red-50 border-red-200' :
+          joinProgress.status === 'recording' || joinProgress.status === 'in_meeting' ? 'bg-green-50 border-green-200' :
+          'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-center gap-3">
+            {joinProgress.status !== 'failed' && joinProgress.status !== 'recording' && joinProgress.status !== 'in_meeting' && (
+              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            )}
+            {joinProgress.status === 'recording' || joinProgress.status === 'in_meeting' ? (
+              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+              </div>
+            ) : null}
+            {joinProgress.status === 'failed' && (
+              <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </div>
+            )}
+            <div>
+              <p className={`font-medium text-sm ${
+                joinProgress.status === 'failed' ? 'text-red-700' :
+                joinProgress.status === 'recording' || joinProgress.status === 'in_meeting' ? 'text-green-700' :
+                'text-blue-700'
+              }`}>
+                {joinProgress.message}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

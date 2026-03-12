@@ -1,4 +1,4 @@
-"""Meeting bot endpoints — join/leave/status via native Playwright bot."""
+"""Meeting bot endpoints — join/leave/status via ElevenLabs phone dial-in or Playwright bot."""
 
 import asyncio
 import re
@@ -18,6 +18,59 @@ from gneva.config import get_settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/bot", tags=["bot"])
 settings = get_settings()
+
+
+# ── ElevenLabs Phone Dial-In ────────────────────────────────────────
+
+def _should_use_phone_dialin() -> bool:
+    """Check if Twilio + ElevenLabs phone dial-in is configured."""
+    return bool(
+        settings.twilio_account_sid
+        and settings.twilio_auth_token
+        and settings.twilio_phone_number
+        and settings.elevenlabs_agent_id
+        and settings.elevenlabs_api_key
+        and settings.app_base_url
+    )
+
+
+async def _dialin_via_twilio(
+    phone_number: str,
+    conference_id: str,
+    meeting_id: str,
+) -> dict:
+    """Dial into a meeting via Twilio with DTMF conference ID, bridged to ElevenLabs agent.
+
+    Uses Twilio REST API with send_digits to enter the conference ID via DTMF tones,
+    then connects audio to ElevenLabs ConvAI agent via WebSocket stream bridge.
+    """
+    from gneva.bot.twilio_dialin import make_outbound_call
+
+    # Clean phone number to E.164 format
+    clean_number = re.sub(r"[^\d+]", "", phone_number)
+    if not clean_number.startswith("+"):
+        clean_number = "+1" + clean_number
+
+    # Clean conference ID (just digits and #)
+    clean_conf_id = re.sub(r"[^\d#]", "", conference_id)
+
+    try:
+        result = make_outbound_call(
+            to_number=clean_number,
+            conference_id=clean_conf_id,
+            meeting_id=meeting_id,
+        )
+        logger.info(
+            f"Twilio dial-in initiated: call_sid={result['call_sid']} "
+            f"to={clean_number} conf={clean_conf_id}"
+        )
+        return {
+            "success": True,
+            "call_sid": result["call_sid"],
+        }
+    except Exception as e:
+        logger.error(f"Twilio dial-in failed: {e}")
+        raise HTTPException(status_code=502, detail=f"Phone dial-in failed: {e}")
 
 _background_tasks: set = set()
 
@@ -45,24 +98,64 @@ def set_bot_manager(manager):
 
 GREETING_MODES = {
     "personalized": None,  # AI-generated based on memory (default)
-    "professional": "Hey team, I'll be taking notes today. Let's make this a productive one.",
-    "casual": "Hey everyone! What are we diving into today?",
-    "energetic": "Alright team, let's do this! I'm all ears.",
-    "funny": "Oh man, not another meeting... just kidding, I love these. What's on the agenda?",
-    "monday": "Happy Monday! Hope everyone had a good weekend. Let's see what we've got this week.",
-    "friday": "Happy Friday! Let's wrap up strong. What do we need to close out?",
-    "standup": "Morning! Quick sync — what did everyone get done and what's blocking you?",
+    "professional": "Hey team, I got notes. Let's get into it.",
+    "casual": "Hey everyone. What are we getting into today?",
+    "energetic": "Alright, let's go! I'm ready. Notes are on me.",
+    "funny": "Oh great, another meeting. Nah I'm kidding, let's do this. What's up?",
+    "monday": "Happy Monday. Hope the weekend was good. So what's on deck this week?",
+    "friday": "Friday, finally. Let's close things out. What do we need to wrap up?",
+    "standup": "Morning. Quick sync — what'd everyone get done, what's blocking?",
     "silent": "",  # Client mode — don't say anything
 }
 
 
+def _parse_meeting_info(text: str) -> dict:
+    """Parse a pasted Teams meeting info block to extract URL, dial-in number, and conference ID.
+
+    Handles the standard Teams "Copy meeting info" format:
+      +1 267-368-7214,,146538464#
+      Phone conference ID: 146 538 464#
+      https://teams.microsoft.com/meet/...
+    """
+    result: dict = {"meeting_url": None, "dialin_number": None, "conference_id": None}
+
+    # Extract Teams meeting URL
+    url_match = re.search(r'(https://teams\.microsoft\.com/\S+)', text)
+    if url_match:
+        result["meeting_url"] = url_match.group(1).rstrip(')')
+
+    # Extract dial-in line: "+1 267-368-7214,,146538464#"
+    # The commas separate phone number from conference ID DTMF digits
+    dialin_match = re.search(r'(\+[\d\s\-()]+),,(\d[\d\s]*#?)', text)
+    if dialin_match:
+        result["dialin_number"] = re.sub(r'[^\d+]', '', dialin_match.group(1))
+        result["conference_id"] = re.sub(r'[^\d#]', '', dialin_match.group(2))
+    else:
+        # Try "Phone conference ID: 146 538 464#" format
+        conf_match = re.search(r'(?:Phone\s+)?[Cc]onference\s+ID[:\s]+(\d[\d\s]*#?)', text)
+        if conf_match:
+            result["conference_id"] = re.sub(r'[^\d#]', '', conf_match.group(1))
+
+        # Try standalone phone number with country code
+        phone_match = re.search(r'(\+\d[\d\s\-()]{7,})', text)
+        if phone_match:
+            result["dialin_number"] = re.sub(r'[^\d+]', '', phone_match.group(1))
+
+    return result
+
+
 class BotJoinRequest(BaseModel):
-    meeting_url: str
+    meeting_url: str = ""  # can be empty if meeting_info is provided
     platform: str = "auto"  # "auto", "zoom", "google_meet", "teams"
     meeting_title: str | None = None
     bot_name: str | None = None  # override default name
     voice_id: str | None = None  # ElevenLabs voice ID for TTS
     greeting_mode: str = "personalized"  # key from GREETING_MODES
+    # Phone dial-in fields (for ElevenLabs ConvAI agent)
+    dialin_number: str | None = None  # e.g. "+12673687214"
+    conference_id: str | None = None  # e.g. "146538464#"
+    # Freeform paste: user pastes Teams "Copy meeting info" text
+    meeting_info: str | None = None
 
     @field_validator("bot_name")
     @classmethod
@@ -96,8 +189,20 @@ async def join_meeting(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Send Gneva to join a meeting."""
-    manager = get_bot_manager()
+    """Send Gneva to join a meeting — via phone dial-in (ElevenLabs) or browser bot."""
+
+    # Parse freeform meeting_info if provided
+    if req.meeting_info:
+        parsed_info = _parse_meeting_info(req.meeting_info)
+        if parsed_info["meeting_url"] and not req.meeting_url:
+            req.meeting_url = parsed_info["meeting_url"]
+        if parsed_info["dialin_number"] and not req.dialin_number:
+            req.dialin_number = parsed_info["dialin_number"]
+        if parsed_info["conference_id"] and not req.conference_id:
+            req.conference_id = parsed_info["conference_id"]
+
+    if not req.meeting_url:
+        raise HTTPException(status_code=400, detail="Could not find a meeting URL. Paste the full Teams meeting info or provide a URL.")
 
     # S5 fix: Validate meeting_url against known platforms to prevent SSRF
     from urllib.parse import urlparse
@@ -126,6 +231,51 @@ async def join_meeting(
     await db.flush()
 
     meeting_id_str = str(meeting.id)
+
+    # ── Path 1: ElevenLabs phone dial-in (preferred for Teams) ──
+    # Phone handles voice via Twilio→ElevenLabs; browser bot joins silently
+    # for screen capture, captions, and chat monitoring.
+    if req.dialin_number and req.conference_id and _should_use_phone_dialin():
+        try:
+            result = await _dialin_via_twilio(
+                phone_number=req.dialin_number,
+                conference_id=req.conference_id,
+                meeting_id=meeting_id_str,
+            )
+            bot_id = result.get("call_sid", f"phone-{uuid.uuid4().hex[:8]}")
+            meeting.bot_id = bot_id
+            meeting.status = "active"
+            await db.commit()
+
+            # Also launch a visual-only browser bot for screen capture + captions
+            try:
+                manager = get_bot_manager()
+                visual_bot_id = await manager.join_visual_only(
+                    meeting_url=req.meeting_url,
+                    meeting_id=meeting_id_str,
+                    org_id=str(user.org_id),
+                )
+                logger.info(
+                    f"Hybrid mode: phone={bot_id}, visual_bot={visual_bot_id} "
+                    f"for meeting {meeting_id_str}"
+                )
+            except Exception as e:
+                logger.warning(f"Visual-only bot failed (phone still active): {e}")
+
+            return BotJoinResponse(
+                meeting_id=meeting_id_str,
+                bot_id=bot_id,
+                status="joining",
+                platform=platform,
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Phone dial-in failed, falling back to browser bot: {e}")
+            # Fall through to browser bot
+
+    # ── Path 2: Browser bot (Playwright — fallback) ──
+    manager = get_bot_manager()
 
     # Define completion callback to update meeting status
     async def on_bot_complete(bot_id, meeting_id, audio_path, success):
@@ -168,7 +318,7 @@ async def join_meeting(
         raise HTTPException(status_code=500, detail="Bot launch failed")
 
     meeting.bot_id = bot_id
-    await db.commit()  # B6 fix: ensure bot_id is persisted
+    await db.commit()
 
     return BotJoinResponse(
         meeting_id=meeting_id_str,
@@ -292,8 +442,16 @@ async def list_greeting_modes(user: User = Depends(get_current_user)):
 async def bot_debug(
     bot_id: str,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Debug endpoint — dump caption DOM and JS state from the bot's browser."""
+    # Verify the bot's meeting belongs to user's org
+    result = await db.execute(
+        select(Meeting).where(Meeting.bot_id == bot_id, Meeting.org_id == user.org_id)
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Bot not found")
+
     manager = get_bot_manager()
     bot = manager._bots.get(bot_id)
     if not bot or not bot._page:
@@ -323,6 +481,13 @@ async def bot_debug(
 
                 // Check pending captions
                 info.pendingSegments = window.__gnevaCaptions ? window.__gnevaCaptions.segments.length : -1;
+
+                // Audio capture diagnostics
+                info.audioCtxExists = !!window.__gnevaAudioCaptureCtx;
+                info.audioCtxState = window.__gnevaAudioCaptureCtx ? window.__gnevaAudioCaptureCtx.state : 'none';
+                info.mergerExists = !!window.__gnevaAudioCaptureMerger;
+                info.incomingTracks = window.__gnevaIncomingAudioTracks ? window.__gnevaIncomingAudioTracks.length : 0;
+                info.mediaElements = document.querySelectorAll('audio, video').length;
 
                 // Get the full visible caption text
                 const captionPanel = document.querySelector(

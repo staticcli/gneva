@@ -192,20 +192,58 @@ def get_avatar_inject_js(face_image_b64: str | None = None) -> str:
     }
 
     // === PHOTO-BASED AVATAR RENDERING ===
-    // Clean render: just the photo filling the canvas + name tag.
-    // NO overlays, NO vignette, NO breathing, NO head tilt.
+    // Renders a circular profile picture on a dark background,
+    // matching the Teams participant tile style.
     function drawPhotoAvatar(W, H, cx, faceY) {
         const imgW = facePhoto.naturalWidth;
         const imgH = facePhoto.naturalHeight;
-        // Scale to fill canvas completely (cover mode)
-        const scale = Math.max(W / imgW, H / imgH);
+
+        // Dark gradient background matching Teams tiles
+        const bg = ctx.createRadialGradient(cx, H * 0.42, 20, cx, H * 0.42, H * 0.9);
+        bg.addColorStop(0, '#2D3139');
+        bg.addColorStop(1, '#1A1D23');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Circle parameters — small, like Teams profile pics (not dominating the tile)
+        const circleRadius = Math.min(W, H) * 0.15;
+        const circleX = cx;
+        const circleY = H * 0.38;
+
+        // Subtle shadow behind circle
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 4;
+        ctx.beginPath();
+        ctx.arc(circleX, circleY, circleRadius + 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#3A3F4A';
+        ctx.fill();
+        ctx.restore();
+
+        // Clip to circle
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(circleX, circleY, circleRadius, 0, Math.PI * 2);
+        ctx.clip();
+
+        // Draw photo inside circle (cover mode, face-centered)
+        const scale = Math.max((circleRadius * 2) / imgW, (circleRadius * 2) / imgH);
         const drawW = imgW * scale;
         const drawH = imgH * scale;
-        const drawX = (W - drawW) / 2;
-        const drawY = (H - drawH) / 2;
+        const drawX = circleX - drawW / 2;
+        // Bias upward slightly to focus on face rather than chest
+        const drawY = circleY - drawH / 2 - (drawH * 0.05);
 
-        // Draw the photo — nothing else on top
         ctx.drawImage(facePhoto, drawX, drawY, drawW, drawH);
+        ctx.restore();
+
+        // Thin circular border (like Teams profile ring)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(circleX, circleY, circleRadius, 0, Math.PI * 2);
+        ctx.stroke();
 
         // Name tag at the bottom
         drawNameTag(cx, H);
