@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     twilio_phone_number: str = ""  # E.164 format, e.g. "+19047858101"
     app_base_url: str = ""  # Public URL for TwiML webhook, e.g. "https://yourdomain.com"
 
+    # Webhook auth (shared secret for ElevenLabs tool callbacks)
+    elevenlabs_webhook_secret: str = ""
+
     # Deepgram (optional cloud STT — lower latency than local Whisper)
     deepgram_api_key: str = ""
     stt_backend: str = "whisper"  # "whisper" (local) or "deepgram" (cloud)

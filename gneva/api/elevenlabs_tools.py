@@ -7,15 +7,35 @@ They bridge the ElevenLabs agent to our backend's memory, agents, and action ite
 import logging
 import uuid
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import APIKeyHeader
 from sqlalchemy import text
 
 from gneva.db import async_session_factory
 from gneva.config import get_settings
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/el-tools", tags=["elevenlabs-tools"])
 settings = get_settings()
+
+# Shared-secret auth for webhook endpoints
+_webhook_key_header = APIKeyHeader(name="X-Webhook-Secret", auto_error=False)
+
+
+async def _verify_webhook_secret(key: str | None = Depends(_webhook_key_header)):
+    """Verify the shared secret header on all ElevenLabs webhook calls."""
+    expected = settings.elevenlabs_webhook_secret
+    if not expected:
+        return  # No secret configured — allow (dev mode)
+    if key != expected:
+        logger.warning("EL webhook: invalid or missing X-Webhook-Secret header")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+router = APIRouter(
+    prefix="/api/el-tools",
+    tags=["elevenlabs-tools"],
+    dependencies=[Depends(_verify_webhook_secret)],
+)
 
 # Global registry for active screen capture engines (meeting_id -> ScreenCaptureEngine)
 _active_screen_captures: dict[str, "ScreenCaptureEngine"] = {}

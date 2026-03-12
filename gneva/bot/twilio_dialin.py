@@ -6,13 +6,15 @@ Flow:
   3. TwiML responds with <Connect><Stream> pointing to our WebSocket bridge
   4. Our WebSocket bridge connects to ElevenLabs ConvAI and pipes audio bidirectionally
   5. ElevenLabs agent is now live in the Teams meeting
+
+Audio format: Both Twilio and ElevenLabs are configured for mulaw 8kHz (ulaw_8000),
+so audio passes through without any transcoding.
 """
 
 import asyncio
-import audioop
-import base64
 import json
 import logging
+
 import httpx
 import websockets
 from fastapi import APIRouter, WebSocket, Request
@@ -23,32 +25,6 @@ from gneva.config import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["twilio"])
-
-
-def _mulaw_to_pcm16k(mulaw_b64: str) -> str:
-    """Convert mulaw 8kHz base64 audio to PCM 16-bit 16kHz base64.
-
-    Twilio sends mulaw 8-bit 8kHz; ElevenLabs expects PCM 16-bit 16kHz.
-    """
-    mulaw_bytes = base64.b64decode(mulaw_b64)
-    # mulaw → PCM 16-bit (still 8kHz)
-    pcm_8k = audioop.ulaw2lin(mulaw_bytes, 2)
-    # Upsample 8kHz → 16kHz
-    pcm_16k = audioop.ratecv(pcm_8k, 2, 1, 8000, 16000, None)[0]
-    return base64.b64encode(pcm_16k).decode("ascii")
-
-
-def _pcm16k_to_mulaw(pcm_b64: str) -> str:
-    """Convert PCM 16-bit 16kHz base64 audio to mulaw 8kHz base64.
-
-    ElevenLabs sends PCM 16-bit; Twilio expects mulaw 8-bit 8kHz.
-    """
-    pcm_bytes = base64.b64decode(pcm_b64)
-    # Downsample 16kHz → 8kHz
-    pcm_8k = audioop.ratecv(pcm_bytes, 2, 1, 16000, 8000, None)[0]
-    # PCM 16-bit → mulaw
-    mulaw_bytes = audioop.lin2ulaw(pcm_8k, 2)
-    return base64.b64encode(mulaw_bytes).decode("ascii")
 
 # Track active sessions: call_sid -> session info
 _active_sessions: dict[str, dict] = {}
@@ -147,9 +123,8 @@ async def status_callback(request: Request):
 async def twilio_stream(ws: WebSocket, meeting_id: str):
     """WebSocket bridge: Twilio media stream <-> ElevenLabs ConvAI agent.
 
-    Based on the reference implementation from elevenlabs-twilio-i-o.
-    Twilio sends mulaw 8kHz base64; ElevenLabs handles the format natively
-    when using their Twilio integration path.
+    Both Twilio and ElevenLabs are configured for mulaw 8kHz (ulaw_8000),
+    so audio passes straight through without transcoding.
     """
     settings = get_settings()
     await ws.accept()
@@ -173,7 +148,7 @@ async def twilio_stream(ws: WebSocket, meeting_id: str):
         # Connect to ElevenLabs ConvAI WebSocket
         el_ws = await websockets.connect(signed_url)
 
-        # Send minimal initialization — no overrides that could trigger policy violations
+        # Send minimal initialization
         init_msg = {
             "type": "conversation_initiation_client_data",
             "custom_llm_extra_body": {
@@ -183,9 +158,9 @@ async def twilio_stream(ws: WebSocket, meeting_id: str):
         await el_ws.send(json.dumps(init_msg))
         logger.info("ElevenLabs init message sent")
 
-        # Bridge audio bidirectionally
+        # Bridge audio bidirectionally — no transcoding needed (both use mulaw 8kHz)
         async def twilio_to_elevenlabs():
-            """Forward Twilio audio to ElevenLabs."""
+            """Forward Twilio mulaw audio directly to ElevenLabs."""
             try:
                 while True:
                     data = await ws.receive_text()
@@ -197,16 +172,11 @@ async def twilio_stream(ws: WebSocket, meeting_id: str):
                         logger.info(f"Twilio stream started: {stream_sid}")
 
                     elif msg.get("event") == "media":
-                        # Convert Twilio mulaw 8kHz → PCM 16-bit 16kHz for ElevenLabs
+                        # Pass mulaw audio straight through — no conversion needed
                         if el_ws:
-                            mulaw_payload = msg["media"]["payload"]
-                            try:
-                                pcm_payload = _mulaw_to_pcm16k(mulaw_payload)
-                                await el_ws.send(json.dumps({
-                                    "user_audio_chunk": pcm_payload,
-                                }))
-                            except Exception:
-                                pass  # Skip malformed audio chunks
+                            await el_ws.send(json.dumps({
+                                "user_audio_chunk": msg["media"]["payload"],
+                            }))
 
                     elif msg.get("event") == "stop":
                         logger.info(f"Twilio stream stopped: {stream_sid}")
@@ -216,33 +186,29 @@ async def twilio_stream(ws: WebSocket, meeting_id: str):
                 logger.error(f"Twilio->ElevenLabs error: {e}")
 
         async def elevenlabs_to_twilio():
-            """Forward ElevenLabs audio back to Twilio."""
+            """Forward ElevenLabs mulaw audio directly back to Twilio."""
             try:
                 async for message in el_ws:
                     msg = json.loads(message)
                     msg_type = msg.get("type", "")
 
                     if msg_type == "audio":
-                        # Two possible audio formats from ElevenLabs
+                        # Two possible audio payload locations
                         audio_data = None
                         if msg.get("audio", {}).get("chunk"):
                             audio_data = msg["audio"]["chunk"]
                         elif msg.get("audio_event", {}).get("audio_base_64"):
                             audio_data = msg["audio_event"]["audio_base_64"]
 
+                        # Pass mulaw audio straight through — no conversion needed
                         if audio_data and stream_sid:
-                            try:
-                                # Convert ElevenLabs PCM 16kHz → Twilio mulaw 8kHz
-                                mulaw_data = _pcm16k_to_mulaw(audio_data)
-                                await ws.send_json({
-                                    "event": "media",
-                                    "streamSid": stream_sid,
-                                    "media": {
-                                        "payload": mulaw_data,
-                                    },
-                                })
-                            except Exception:
-                                pass  # Skip malformed audio chunks
+                            await ws.send_json({
+                                "event": "media",
+                                "streamSid": stream_sid,
+                                "media": {
+                                    "payload": audio_data,
+                                },
+                            })
 
                     elif msg_type == "interruption":
                         # User started speaking — clear Twilio's audio buffer
